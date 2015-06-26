@@ -36,7 +36,9 @@ typedef struct {
 	char *hostname;
 	unsigned int port;
 	char *uuid;
-	int master;
+	char *status;
+	char *mode;
+	double weight;
 } mysqlnd_fabric_server;
 
 enum mysqlnd_fabric_hint {

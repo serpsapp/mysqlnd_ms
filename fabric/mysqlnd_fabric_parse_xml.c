@@ -38,7 +38,8 @@ static xmlXPathObjectPtr mysqlnd_fabric_find_value_nodes(xmlDocPtr doc)
 		return NULL;
 	}
 
-	retval = xmlXPathEvalExpression((xmlChar*)"//params/param/value/array/data/value[4]/array/data/value", xpathCtx);
+
+	retval = xmlXPathEvalExpression((xmlChar*)"//params/param/value/array/data/value[5]/array/data/value/struct/member[2]/value/array/data/value", xpathCtx);
 	xmlXPathFreeContext(xpathCtx); 
 
 	return retval;
@@ -86,22 +87,37 @@ static int mysqlnd_fabric_fill_server_from_value(xmlNodePtr node, mysqlnd_fabric
 	server->hostname = estrdup(tmp);
 
 	tmp = strchr(server->hostname, ':');
-	*tmp = '\0';
-	server->port = atoi(&tmp[1]);
+	fprintf(stderr, "Getting port from %s...", server->hostname);
+	if(tmp) {
+		*tmp = '\0';
+		server->port = atoi(&tmp[1]);
+	} else {
+		server->port = 0;
+	}
 
-	tmp = myslqnd_fabric_get_actual_value("//array/data/value[3]/boolean", xpathCtx);
+	tmp = myslqnd_fabric_get_actual_value("//array/data/value[3]/string", xpathCtx);
 	if (!tmp) {
 		xmlXPathFreeContext(xpathCtx);
 		return 1;
 	}
 
-	switch (tmp[0]) {
-	case '0': server->master = 0; break;
-	case '1': server->master = 1; break;
-	default:
+	server->status = estrdup(tmp);
+
+	tmp = myslqnd_fabric_get_actual_value("//array/data/value[4]/string", xpathCtx);
+	if (!tmp) {
 		xmlXPathFreeContext(xpathCtx);
 		return 1;
 	}
+
+	server->mode = estrdup(tmp);
+
+	tmp = myslqnd_fabric_get_actual_value("//array/data/value[5]/double", xpathCtx);
+	if (!tmp) {
+		xmlXPathFreeContext(xpathCtx);
+		return 1;
+	}
+
+	server->weight = atof(tmp);
 
 	xmlXPathFreeContext(xpathCtx);
 
