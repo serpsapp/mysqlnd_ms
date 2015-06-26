@@ -1,0 +1,23 @@
+*.exp
+*.diff
+*.log
+*.out
+*.php
+*.sh
+*.lo
+*.la
+config*
+Makefile*
+
+# Build detrius
+ac*
+autom4te*
+install-sh
+libtool
+missing
+mkinstalldirs
+modules
+tmp-php.ini
+.libs
+.deps
+build
