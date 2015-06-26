@@ -38,7 +38,7 @@ static xmlXPathObjectPtr mysqlnd_fabric_find_value_nodes(xmlDocPtr doc)
 		return NULL;
 	}
 
-	retval = xmlXPathEvalExpression((xmlChar*)"//params/param/value/array/data/value[3]/array/data/value", xpathCtx);
+	retval = xmlXPathEvalExpression((xmlChar*)"//params/param/value/array/data/value[4]/array/data/value", xpathCtx);
 	xmlXPathFreeContext(xpathCtx); 
 
 	return retval;
@@ -124,12 +124,14 @@ mysqlnd_fabric_server *mysqlnd_fabric_parse_xml(char *xmlstr, int xmlstr_len)
 
 	xpathObj1 = mysqlnd_fabric_find_value_nodes(doc);
 	if (!xpathObj1) {
+		fprintf(stderr, "No xpathObj1!\n");
 		xmlFreeDoc(doc);
 		return NULL;
 	}
 	
 	if (!xpathObj1->nodesetval) {
 		/* Verbose debug info in /methodresponse/params/param/value/array/data/value[2]/array/data/value[3]/struct/member/value/string */
+		fprintf(stderr, "No xpathObj1->nodesetval!\n");
 		xmlXPathFreeObject(xpathObj1);
 		xmlFreeDoc(doc);
 		return NULL;

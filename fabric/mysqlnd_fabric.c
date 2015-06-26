@@ -34,7 +34,7 @@
 			"<param><!-- table --><value><string>%s</string></value></param>\n" \
 			"<param><!-- shard key --><value><string>%s</string></value></param>\n" \
 			"<param><!-- hint --><value><string>%s</string></value></param>\n" \
-			"<param><!-- sync --><value><boolean>1</boolean></value></param></params>\n" \
+			"</params>\n" \
 			"</methodCall>"
 
 static void mysqlnd_fabric_host_shuffle(mysqlnd_fabric_host *a, size_t n)
