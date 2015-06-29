@@ -678,9 +678,12 @@ static void mysqlnd_ms_fabric_select_servers(zval *return_value, zval *conn_zv, 
 	for (; servers->hostname; servers++) {
 		MYSQLND *conn = mysqlnd_init(proxy_conn->data->persistent);
 		
-		if (servers->master) {
+		DBG_INF_FMT("Server status: <%s>", servers->status);
+		if (strcmp(servers->status, "PRIMARY") == 0) {
+			DBG_INF("Adding master server...");
 			mysqlnd_ms_connect_to_host_aux(proxy_conn->data, conn->data, servers->hostname, TRUE,  servers->hostname, servers->port, &(*conn_data)->master_connections, &(*conn_data)->cred, &(*conn_data)->global_trx, TRUE, proxy_conn->data->persistent TSRMLS_CC);
 		} else {
+			DBG_INF("Adding slave server...");
 			mysqlnd_ms_connect_to_host_aux(proxy_conn->data, conn->data, servers->hostname, FALSE, servers->hostname, servers->port, &(*conn_data)->slave_connections,  &(*conn_data)->cred, &(*conn_data)->global_trx, TRUE, proxy_conn->data->persistent TSRMLS_CC);
 		}
 
