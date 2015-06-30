@@ -95,12 +95,11 @@ mysqlnd_ms_xa_store_mysql_connect(void * data, MYSQLND_ERROR_INFO *error_info TS
 		DBG_RETURN(ret);
 	}
 
-	store_data->conn = mysqlnd_init(MYSQLND_CLIENT_NO_FLAG, FALSE);
+	store_data->conn = mysqlnd_init(FALSE);
 
 	if (mysqlnd_connect(store_data->conn, store_data->host, store_data->user, store_data->password,
 		store_data->password_len, store_data->db, store_data->db_len,
-		store_data->port, store_data->socket, store_data->flags,
-		MYSQLND_CLIENT_NO_FLAG TSRMLS_CC) == NULL) {
+		store_data->port, store_data->socket, store_data->flags TSRMLS_CC) == NULL) {
 		COPY_SQL_ERROR(store_data->conn, error_info);
 		mysqlnd_close(store_data->conn, MYSQLND_CLOSE_DISCONNECTED);
 		store_data->conn = NULL;
@@ -760,7 +759,7 @@ mysqlnd_ms_xa_store_gc_participants(MYSQLND_MS_XA_STATE_STORE_MYSQL * store_data
 		if (((Z_STRLEN_PP(scheme) > sizeof("tcp://")) && !memcmp(Z_STRVAL_PP(scheme), "tcp://", sizeof("tcp://") - 1)) ||
 			((Z_STRLEN_PP(scheme) > sizeof("unix://")) && !memcmp(Z_STRVAL_PP(scheme), "unix://", sizeof("unix://") - 1))) {
 
-			MYSQLND * conn = mysqlnd_init(MYSQLND_CLIENT_NO_FLAG, FALSE);
+			MYSQLND * conn = mysqlnd_init(FALSE);
 			if (mysqlnd_connect(conn,
 							Z_STRVAL_PP(host),
 							Z_STRLEN_PP(user) ? Z_STRVAL_PP(user) : store_data->user,
@@ -768,8 +767,7 @@ mysqlnd_ms_xa_store_gc_participants(MYSQLND_MS_XA_STATE_STORE_MYSQL * store_data
 							Z_STRLEN_PP(password) ? Z_STRLEN_PP(password) : store_data->password_len,
 							store_data->db, store_data->db_len,
 							(unsigned int)Z_LVAL_PP(port),
-							NULL /* socket */, 0 /* flags */,
-							MYSQLND_CLIENT_NO_FLAG TSRMLS_CC) == NULL) {
+							NULL /* socket */, 0 /* flags */ TSRMLS_CC) == NULL) {
 				COPY_SQL_ERROR(conn, error_info);
 				mysqlnd_close(conn, MYSQLND_CLOSE_DISCONNECTED);
 				goto gc_participants_exit;
