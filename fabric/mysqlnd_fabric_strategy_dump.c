@@ -282,6 +282,58 @@ DECLARE_FILL_ENTRY_BEGIN(fill_server_entry, mysqlnd_fabric_server)
 	}
 } DECLARE_FILL_ENTRY_END()
 
+int fabric_get_values_from_hash(zval *hash, zval ***values, char *err, size_t err_size) {
+	zval **step1;
+	zval **step2;
+
+	if (Z_TYPE_P(hash) != IS_ARRAY) {
+		zval_dtor(*step1);
+		zval_dtor(*step2);
+		strncpy(err, "Failed to decode  XML-RPC response while handling shard_table", err_size);
+		return 0;
+	}
+	if (zend_hash_index_find(Z_ARRVAL_P(hash), 4, (void**)&step1) == FAILURE) {
+		zval_dtor(*step1);
+		zval_dtor(*step2);
+		strncpy(err, "Invalid response from XML-RPC while handling shard_table", err_size);
+		return 0;
+	}
+	if (Z_TYPE_PP(step1) != IS_ARRAY) {
+		zval_dtor(*step1);
+		zval_dtor(*step2);
+		strncpy(err, "Values element not an array!", err_size);
+		return 0;
+	}
+	if(zend_hash_index_find(Z_ARRVAL_PP(step1), 0, (void**)&step2) == FAILURE) {
+		zval_dtor(*step1);
+		zval_dtor(*step2);
+		strncpy(err, "Values sub-array not found!", err_size);
+		return 0;
+	}
+	if(Z_TYPE_PP(step2) != IS_ARRAY) {
+		zval_dtor(*step1);
+		zval_dtor(*step2);
+		strncpy(err, "Values sub-array not an array!", err_size);
+		return 0;
+	}
+	if(zend_hash_find(Z_ARRVAL_PP(step2), "rows", 5, (void**)&step1) == FAILURE) {
+		zval_dtor(*step1);
+		zval_dtor(*step2);
+		strncpy(err, "Values sub-array not found!", err_size);
+		return 0;
+	}
+	if(Z_TYPE_PP(step1) != IS_ARRAY) {
+		zval_dtor(*step1);
+		zval_dtor(*step2);
+		strncpy(err, "'rows' element not an array!", err_size);
+		return 0;
+	}
+
+	*values = step1;
+
+	return 1;
+}
+
 void fabric_set_raw_data_from_xmlstr(mysqlnd_fabric *fabric,
 	const char *shard_table_xml, size_t shard_table_len,
 	const char *shard_mapping_xml, size_t shard_mapping_len,
@@ -292,6 +344,10 @@ void fabric_set_raw_data_from_xmlstr(mysqlnd_fabric *fabric,
 	zval *z_shard_table, *z_shard_mapping, *z_shard_index, *z_server;
 	zval arg;
 	zval *tmp, **tmpp;
+
+	size_t err_size = 100;
+	char err[err_size];
+	int val_success;
 
 	int shard_table_count;
 	int shard_mapping_count;
@@ -315,13 +371,10 @@ void fabric_set_raw_data_from_xmlstr(mysqlnd_fabric *fabric,
 	INIT_ZVAL(arg);
 	ZVAL_STRINGL(&arg, shard_table_xml, shard_table_len, 0);
 	zend_call_method_with_1_params(NULL, NULL, &func_cache, "xmlrpc_decode", &tmp, &arg);
-	if (Z_TYPE_P(tmp) != IS_ARRAY) {
+	val_success = fabric_get_values_from_hash(tmp, &tmpp, err, err_size);
+	if(!val_success) {
 		zval_dtor(tmp);
-		php_error_docref(NULL TSRMLS_CC, E_ERROR, "Failed to decode  XML-RPC response while handling shard_table");
-	}
-	if (zend_hash_index_find(Z_ARRVAL_P(tmp), 3, (void**)&tmpp) == FAILURE) {
-		zval_dtor(tmp);
-		php_error_docref(NULL TSRMLS_CC, E_ERROR, "Invalid response from XML-RPC while handling shard_table");
+		php_error_docref(NULL TSRMLS_CC, E_ERROR, err);
 	}
 	z_shard_table = *tmpp;
 	Z_ADDREF_P(z_shard_table);
@@ -330,15 +383,11 @@ void fabric_set_raw_data_from_xmlstr(mysqlnd_fabric *fabric,
 	INIT_ZVAL(arg);
 	ZVAL_STRINGL(&arg, shard_mapping_xml, shard_mapping_len, 0);
 	zend_call_method_with_1_params(NULL, NULL, &func_cache, "xmlrpc_decode", &tmp, &arg);
-	if (Z_TYPE_P(tmp) != IS_ARRAY) {
+	val_success = fabric_get_values_from_hash(tmp, &tmpp, err, err_size);
+	if(!val_success) {
 		zval_dtor(tmp);
 		zval_dtor(z_shard_table);
-		php_error_docref(NULL TSRMLS_CC, E_ERROR, "Failed to decode  XML-RPC response while handling shard_mapping");
-	}
-	if (zend_hash_index_find(Z_ARRVAL_P(tmp), 3, (void**)&tmpp) == FAILURE) {
-		zval_dtor(tmp);
-		zval_dtor(z_shard_table);
-		php_error_docref(NULL TSRMLS_CC, E_ERROR, "Invalid response from XML-RPC while handling shard_mapping");
+		php_error_docref(NULL TSRMLS_CC, E_ERROR, err);
 	}
 	z_shard_mapping = *tmpp;
 	Z_ADDREF_P(z_shard_mapping);
@@ -348,17 +397,12 @@ void fabric_set_raw_data_from_xmlstr(mysqlnd_fabric *fabric,
 	ZVAL_STRINGL(&arg, shard_index_xml, shard_index_len, 0);
 	zend_call_method_with_1_params(NULL, NULL, &func_cache, "xmlrpc_decode", &tmp, &arg);
 	zend_call_method_with_1_params(NULL, NULL, &func_cache, "xmlrpc_decode", &tmp, &arg);
-	if (Z_TYPE_P(tmp) != IS_ARRAY) {
+	val_success = fabric_get_values_from_hash(tmp, &tmpp, err, err_size);
+	if(!val_success) {
 		zval_dtor(tmp);
 		zval_dtor(z_shard_table);
 		zval_dtor(z_shard_mapping);
-		php_error_docref(NULL TSRMLS_CC, E_ERROR, "Failed to decode  XML-RPC response while handling shard_index");
-	}
-	if (zend_hash_index_find(Z_ARRVAL_P(tmp), 3, (void**)&tmpp) == FAILURE) {
-		zval_dtor(tmp);
-		zval_dtor(z_shard_table);
-		zval_dtor(z_shard_mapping);
-		php_error_docref(NULL TSRMLS_CC, E_ERROR, "Invalid response from XML-RPC while handling shard_index");
+		php_error_docref(NULL TSRMLS_CC, E_ERROR, err);
 	}
 	z_shard_index = *tmpp;
 	Z_ADDREF_P(z_shard_index);
@@ -367,19 +411,13 @@ void fabric_set_raw_data_from_xmlstr(mysqlnd_fabric *fabric,
 	INIT_ZVAL(arg);
 	ZVAL_STRINGL(&arg, server_xml, server_len, 0);
 	zend_call_method_with_1_params(NULL, NULL, &func_cache, "xmlrpc_decode", &tmp, &arg);
-	if (Z_TYPE_P(tmp) != IS_ARRAY) {
+	val_success = fabric_get_values_from_hash(tmp, &tmpp, err, err_size);
+	if(!val_success) {
 		zval_dtor(tmp);
 		zval_dtor(z_shard_table);
 		zval_dtor(z_shard_mapping);
 		zval_dtor(z_shard_index);
-		php_error_docref(NULL TSRMLS_CC, E_ERROR, "Failed to decode  XML-RPC response while handling server list");
-	}
-	if (zend_hash_index_find(Z_ARRVAL_P(tmp), 3, (void**)&tmpp) == FAILURE) {
-		zval_dtor(tmp);
-		zval_dtor(z_shard_table);
-		zval_dtor(z_shard_mapping);
-		zval_dtor(z_shard_index);
-		php_error_docref(NULL TSRMLS_CC, E_ERROR, "Invalid response from XML-RPC while handling server list");
+		php_error_docref(NULL TSRMLS_CC, E_ERROR, err);
 	}
 	z_server = *tmpp;
 	Z_ADDREF_P(z_server);
