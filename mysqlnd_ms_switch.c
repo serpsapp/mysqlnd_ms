@@ -678,7 +678,7 @@ mysqlnd_ms_pick_server_ex(MYSQLND_CONN_DATA * conn, char ** query, size_t * quer
 	*switched_servers = FALSE;
 
 	if (conn_data && *conn_data) {
-		zend_bool allow_master_for_slave = FALSE;
+		zend_bool allow_master_for_slave = TRUE;
 		struct mysqlnd_ms_lb_strategies * stgy = &(*conn_data)->stgy;
 		zend_llist * filters = stgy->filters;
 		zend_llist * master_list = (*conn_data)->pool->get_active_masters((*conn_data)->pool TSRMLS_CC);

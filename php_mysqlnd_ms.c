@@ -767,7 +767,7 @@ static void mysqlnd_ms_fabric_select_servers(zval *return_value, zval *conn_zv, 
 											proxy_conn->data->persistent);
 
 		exists = (*conn_data)->pool->connection_exists((*conn_data)->pool, &hash_key, &data, &is_master, &is_active, &is_removed TSRMLS_CC);
-		exists = (!is_active && !is_removed) ? TRUE : FALSE;
+		exists = (exists && !is_active && !is_removed) ? TRUE : FALSE;
 		if (exists) {
 			/* Such a server has been added to the pool before */
 			if (is_master && (servers->mode == READ_WRITE)) {
