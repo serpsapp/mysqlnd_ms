@@ -71,6 +71,7 @@ mysqlnd_fabric *mysqlnd_fabric_init(enum mysqlnd_fabric_strategy strategy, unsig
 
 void mysqlnd_fabric_free(mysqlnd_fabric *fabric)
 {
+	return;
 	int i;
 	if (fabric->strategy.deinit) {
 		fabric->strategy.deinit(fabric);

@@ -225,7 +225,7 @@ mysqlnd_ms_conn_list_dtor(void * pDest)
 	}
 
 	if (element->pool_hash_key.len) {
-		smart_str_free(&(element->pool_hash_key));
+		//smart_str_free(&(element->pool_hash_key));
 	}
 
 	mnd_pefree(element, element->persistent);
@@ -1488,6 +1488,7 @@ mysqlnd_ms_conn_free_plugin_data(MYSQLND_CONN_DATA * conn TSRMLS_DC)
 
 		if ((*data_pp)->fabric) {
 			mysqlnd_fabric_free((*data_pp)->fabric);
+			(*data_pp)->fabric = NULL;
 		}
 
 		if ((*data_pp)->xa_trx) {
@@ -2582,6 +2583,9 @@ MYSQLND_METHOD(mysqlnd_ms, get_server_version)(const MYSQLND_CONN_DATA * const p
 	if (CONN_GET_STATE((MYSQLND_CONN_DATA *) conn) < CONN_READY) {
 		conn = mysqlnd_ms_pick_first_master_or_slave(proxy_conn TSRMLS_CC);
 	}
+	if(!conn) {
+		php_error_docref(NULL TSRMLS_CC, E_WARNING, MYSQLND_MS_ERROR_PREFIX " No mysqlnd_ms connection");
+	}
 	return MS_CALL_ORIGINAL_CONN_DATA_METHOD(get_server_version)(conn TSRMLS_CC);
 }
 /* }}} */
@@ -2595,6 +2599,9 @@ MYSQLND_METHOD(mysqlnd_ms, get_server_info)(const MYSQLND_CONN_DATA * const prox
 	const MYSQLND_CONN_DATA * conn = ((*conn_data) && (*conn_data)->stgy.last_used_conn)? (*conn_data)->stgy.last_used_conn:proxy_conn;
 	if (CONN_GET_STATE((MYSQLND_CONN_DATA *) conn) < CONN_READY) {
 		conn = mysqlnd_ms_pick_first_master_or_slave(proxy_conn TSRMLS_CC);
+	}
+	if(!conn) {
+		php_error_docref(NULL TSRMLS_CC, E_WARNING, MYSQLND_MS_ERROR_PREFIX " No mysqlnd_ms connection");
 	}
 	return MS_CALL_ORIGINAL_CONN_DATA_METHOD(get_server_information)(conn TSRMLS_CC);
 }
@@ -2611,6 +2618,9 @@ MYSQLND_METHOD(mysqlnd_ms, get_host_info)(const MYSQLND_CONN_DATA * const proxy_
 	if (CONN_GET_STATE((MYSQLND_CONN_DATA *) conn) < CONN_READY) {
 		conn = mysqlnd_ms_pick_first_master_or_slave(proxy_conn TSRMLS_CC);
 	}
+	if(!conn) {
+		php_error_docref(NULL TSRMLS_CC, E_WARNING, MYSQLND_MS_ERROR_PREFIX " No mysqlnd_ms connection");
+	}
 	return MS_CALL_ORIGINAL_CONN_DATA_METHOD(get_host_information)(conn TSRMLS_CC);
 }
 /* }}} */
@@ -2625,6 +2635,9 @@ MYSQLND_METHOD(mysqlnd_ms, get_proto_info)(const MYSQLND_CONN_DATA * const proxy
 
 	if (CONN_GET_STATE((MYSQLND_CONN_DATA *) conn) < CONN_READY) {
 		conn = mysqlnd_ms_pick_first_master_or_slave(proxy_conn TSRMLS_CC);
+	}
+	if(!conn) {
+		php_error_docref(NULL TSRMLS_CC, E_WARNING, MYSQLND_MS_ERROR_PREFIX " No mysqlnd_ms connection");
 	}
 	return MS_CALL_ORIGINAL_CONN_DATA_METHOD(get_protocol_information)(conn TSRMLS_CC);
 }
@@ -2641,6 +2654,9 @@ MYSQLND_METHOD(mysqlnd_ms, charset_name)(const MYSQLND_CONN_DATA * const proxy_c
 	if (CONN_GET_STATE((MYSQLND_CONN_DATA *) conn) < CONN_READY) {
 		conn = mysqlnd_ms_pick_first_master_or_slave(proxy_conn TSRMLS_CC);
 	}
+	if(!conn) {
+		php_error_docref(NULL TSRMLS_CC, E_WARNING, MYSQLND_MS_ERROR_PREFIX " No mysqlnd_ms connection");
+	}
 	return MS_CALL_ORIGINAL_CONN_DATA_METHOD(charset_name)(conn TSRMLS_CC);
 }
 /* }}} */
@@ -2653,6 +2669,12 @@ MYSQLND_METHOD(mysqlnd_ms, get_connection_stats)(const MYSQLND_CONN_DATA * const
 	MS_DECLARE_AND_LOAD_CONN_DATA(conn_data, proxy_conn);
 	const MYSQLND_CONN_DATA * conn = ((*conn_data) && (*conn_data)->stgy.last_used_conn)? (*conn_data)->stgy.last_used_conn:proxy_conn;
 
+	if (CONN_GET_STATE((MYSQLND_CONN_DATA *) conn) < CONN_READY) {
+		conn = mysqlnd_ms_pick_first_master_or_slave(proxy_conn TSRMLS_CC);
+	}
+	if(!conn) {
+		php_error_docref(NULL TSRMLS_CC, E_WARNING, MYSQLND_MS_ERROR_PREFIX " No mysqlnd_ms connection");
+	}
 	MS_CALL_ORIGINAL_CONN_DATA_METHOD(get_statistics)(conn, return_value TSRMLS_CC ZEND_FILE_LINE_CC);
 }
 /* }}} */
@@ -2668,6 +2690,9 @@ MYSQLND_METHOD(mysqlnd_ms, dump_debug_info)(MYSQLND_CONN_DATA * const proxy_conn
 	DBG_ENTER("mysqlnd_ms::dump_debug_info");
 	if (CONN_GET_STATE((MYSQLND_CONN_DATA *) conn) < CONN_READY) {
 		conn = mysqlnd_ms_pick_first_master_or_slave(proxy_conn TSRMLS_CC);
+	}
+	if(!conn) {
+		php_error_docref(NULL TSRMLS_CC, E_WARNING, MYSQLND_MS_ERROR_PREFIX " No mysqlnd_ms connection");
 	}
 	DBG_RETURN(MS_CALL_ORIGINAL_CONN_DATA_METHOD(server_dump_debug_information)(conn TSRMLS_CC));
 }

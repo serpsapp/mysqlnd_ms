@@ -643,6 +643,9 @@ mysqlnd_ms_pick_first_master_or_slave(const MYSQLND_CONN_DATA * const conn TSRML
 			DBG_RETURN(stgy->last_used_conn = el->conn);
 		}
 	END_ITERATE_OVER_SERVER_LIST;
+
+	php_error_docref(NULL TSRMLS_CC, E_WARNING, MYSQLND_MS_ERROR_PREFIX " No mysqlnd_ms connection");
+
 	DBG_RETURN(NULL);
 }
 /* }}} */
