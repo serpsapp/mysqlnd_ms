@@ -770,7 +770,8 @@ static void mysqlnd_ms_fabric_select_servers(zval *return_value, zval *conn_zv, 
 		exists = (exists && !is_active && !is_removed) ? TRUE : FALSE;
 		if (exists) {
 			/* Such a server has been added to the pool before */
-			if (is_master && (servers->mode == READ_WRITE)) {
+			if (is_master && (servers->mode == READ_WRITE) ||
+				!is_master && (servers->mode == READ_ONLY)) {
 				/* ... and, the role has not changed */
 				if (PASS == ((*conn_data)->pool->connection_reactivate((*conn_data)->pool, &hash_key, is_master TSRMLS_CC))) {
 					/* welcome back server */
