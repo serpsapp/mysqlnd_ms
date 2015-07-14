@@ -397,6 +397,7 @@ mysqlnd_ms_connect_to_host_aux(MYSQLND_CONN_DATA * proxy_conn, MYSQLND_CONN_DATA
 																						persistent TSRMLS_CC);
 
 			(*proxy_conn_data)->pool->init_pool_hash_key(new_element);
+			DBG_INF_FMT("Adding %s to the pool (is_master=%d)...\n", new_element->pool_hash_key.c, is_master);
 			if (is_master) {
 				if (PASS != (*proxy_conn_data)->pool->add_master((*proxy_conn_data)->pool, &new_element->pool_hash_key,
 													 new_element, conn->persistent TSRMLS_CC)) {

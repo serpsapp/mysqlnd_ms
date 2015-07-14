@@ -22,6 +22,27 @@
 #ifndef MYSQLND_MS_H
 #define MYSQLND_MS_H
 
+#define DBG_SHIMS
+
+#ifdef DBG_SHIMS
+#undef DBG_ENTER
+#undef DBG_INF
+#undef DBG_INF_FMT
+
+#define DBG_ENTER(str) \
+       fputs("Entering ", stderr); \
+       fprintf(stderr, str); \
+       fputs("\n", stderr)
+#define DBG_INF(str) \
+       fputs("INFO: ", stderr); \
+       fputs(str, stderr); \
+       fputs("\n", stderr)
+#define DBG_INF_FMT(str, ...) \
+       fputs("INFO: ", stderr); \
+       fprintf(stderr, str, ##__VA_ARGS__); \
+       fputs("\n", stderr)
+#endif
+
 #ifdef PHP_WIN32
 #define PHP_MYSQLND_MS_API __declspec(dllexport)
 #else
