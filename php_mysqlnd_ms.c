@@ -726,7 +726,11 @@ static void mysqlnd_ms_fabric_select_servers(zval *return_value, zval *conn_zv, 
 		php_error_docref(NULL TSRMLS_CC, E_ERROR, MYSQLND_MS_ERROR_PREFIX " Failed to flush connection pool");
 	}
 
-	tofree = servers = mysqlnd_fabric_get_shard_servers(fabric, table, key, hint);
+	if(hint == GROUP) {
+		tofree = servers = mysqlnd_fabric_get_group_servers(fabric, table);
+	} else {
+		tofree = servers = mysqlnd_fabric_get_shard_servers(fabric, table, key, hint);
+	}
 	if (mysqlnd_fabric_get_error_no(fabric) > 0) {
 		/*
 		TODO - should be bubble this up to the connection?
@@ -860,6 +864,33 @@ static PHP_FUNCTION(mysqlnd_ms_fabric_select_global)
 	}
 
 	mysqlnd_ms_fabric_select_servers(return_value, conn_zv, table, NULL, GLOBAL TSRMLS_CC);
+}
+/* }}} */
+
+ZEND_BEGIN_ARG_INFO_EX(arginfo_mysqlnd_ms_fabric_select_group, 0, 0, 3)
+	ZEND_ARG_INFO(0, connection)
+	ZEND_ARG_INFO(0, group)
+	ZEND_ARG_INFO(0, readonly)
+ZEND_END_ARG_INFO()
+
+/* {{{ proto long mysqlnd_ms_fabric_select_group(mixed connection, string group, bool readonly)
+   Pick server configuration for a given group
+   
+   Note: the readonly parameter is currently unused,
+   and is included for future compatibility
+*/
+static PHP_FUNCTION(mysqlnd_ms_fabric_select_group)
+{
+	zval *conn_zv;
+	char *group;
+	int group_len;
+	zend_bool readonly;
+
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "zs|b", &conn_zv, &group, &group_len, &readonly) == FAILURE) {
+		return;
+	}
+
+	mysqlnd_ms_fabric_select_servers(return_value, conn_zv, group, NULL, GROUP TSRMLS_CC);
 }
 /* }}} */
 
@@ -1344,6 +1375,7 @@ static const zend_function_entry mysqlnd_ms_functions[] = {
 #endif
 	PHP_FE(mysqlnd_ms_fabric_select_shard, arginfo_mysqlnd_ms_fabric_select_shard)
 	PHP_FE(mysqlnd_ms_fabric_select_global, arginfo_mysqlnd_ms_fabric_select_global)
+	PHP_FE(mysqlnd_ms_fabric_select_group, arginfo_mysqlnd_ms_fabric_select_group)
 	PHP_FE(mysqlnd_ms_dump_servers, arginfo_mysqlnd_ms_dump_servers)
 	PHP_FE(mysqlnd_ms_dump_fabric_rpc_hosts, arginfo_mysqlnd_ms_dump_servers)
 #ifdef PHP_DEBUG

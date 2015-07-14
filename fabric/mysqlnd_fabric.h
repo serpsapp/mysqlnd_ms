@@ -79,7 +79,8 @@ typedef struct {
 
 enum mysqlnd_fabric_hint {
 	LOCAL,
-	GLOBAL
+	GLOBAL,
+	GROUP
 };
 
 mysqlnd_fabric_server *mysqlnd_fabric_get_group_servers(mysqlnd_fabric *fabric, const char *group);
