@@ -765,9 +765,9 @@ static void mysqlnd_ms_fabric_select_servers(zval *return_value, zval *conn_zv, 
 		(*conn_data)->pool->get_conn_hash_key(&hash_key, unique_name_from_config,
 											servers->hostname, (*conn_data)->cred.user,
 											(*conn_data)->cred.passwd, (*conn_data)->cred.passwd_len,
-											servers->port, NULL /* socket */,
-											NULL /* db */, 0 /* db_len */,
-											0 /* flags */,
+											servers->port, (*conn_data)->cred.socket /* socket */,
+											(*conn_data)->cred.db /* db */, (*conn_data)->cred.db_len /* db_len */,
+											(*conn_data)->cred.mysql_flags /* flags */,
 											proxy_conn->data->persistent);
 
 		exists = (*conn_data)->pool->connection_exists((*conn_data)->pool, &hash_key, &data, &is_master, &is_active, &is_removed TSRMLS_CC);
