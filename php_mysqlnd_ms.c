@@ -894,6 +894,21 @@ static PHP_FUNCTION(mysqlnd_ms_fabric_select_group)
 }
 /* }}} */
 
+ZEND_BEGIN_ARG_INFO_EX(arginfo_mysqlnd_ms_fabric_get_shard_tables, 0, 0, 0)
+ZEND_END_ARG_INFO()
+
+/* {{{ proto long mysqlnd_ms_fabric_select_group(mixed connection, string group, bool readonly)
+   Pick server configuration for a given group
+   
+   Note: the readonly parameter is currently unused,
+   and is included for future compatibility
+*/
+static PHP_FUNCTION(mysqlnd_ms_fabric_get_shard_tables)
+{
+	return_value = mysqlnd_ms_fabric_get_shard_tables();
+}
+/* }}} */
+
 static void mysqlnd_ms_add_server_to_array(void *data, void *arg TSRMLS_DC) /* {{{ */
 {
 	zval *host;

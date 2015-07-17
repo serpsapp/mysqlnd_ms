@@ -85,6 +85,7 @@ typedef struct {
 	void (*deinit)(mysqlnd_fabric *fabric);
 	mysqlnd_fabric_server *(*get_group_servers)(mysqlnd_fabric *fabric, const char *group);
 	mysqlnd_fabric_server *(*get_shard_servers)(mysqlnd_fabric *fabric, const char *table, const char *key, enum mysqlnd_fabric_hint hint);
+	zval *(*get_shard_tables)(mysqlnd_fabric *fabric);
 } myslqnd_fabric_strategy;
 
 typedef struct {
