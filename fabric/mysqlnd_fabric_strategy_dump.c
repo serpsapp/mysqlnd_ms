@@ -687,9 +687,8 @@ static mysqlnd_fabric_server *mysqlnd_fabric_dump_get_shard_servers(mysqlnd_fabr
 	return mysqlnd_fabric_get_server_for_group(fabric, group);
 }
 
-static zval *mysqlnd_fabric_dump_get_shard_tables(mysqlnd_fabric *fabric)
+static int mysqlnd_fabric_dump_get_shard_tables(mysqlnd_fabric_shard_table **tables, mysqlnd_fabric *fabric)
 {
-    zval *table_array;
 	const fabric_dump_index *index = &((const fabric_dump_data*)fabric->strategy_data)->index;
 
 	if (!((fabric_dump_data*)fabric->strategy_data)->raw) {
@@ -698,30 +697,17 @@ static zval *mysqlnd_fabric_dump_get_shard_tables(mysqlnd_fabric *fabric)
 		fabric_set_raw_data_from_fabric(fabric);
 	}
 
-    ALLOC_INIT_ZVAL(table_array);
-    array_init(table_array);
+	*tables = &(index->shard_table);
 
-    zval *cur_table[index->shard_table_count];
-    for (i = 0; i < index->shard_table_count; ++i) {
-        ALLOC_INIT_ZVAL(cur_table[i]);
-        array_init(cur_table[i]);
-
-        add_assoc_string(cur_table[i], "schema", index->shard_table[i].schema_name, 1);
-        add_assoc_string(cur_table[i], "table", index->shard_table[i].table_name, 1);
-        add_assoc_string(cur_table[i], "column", index->shard_table[i].table_name, 1);
-        add_assoc_long(cur_table[i], "shard_mapping_id", index->shard_table[i].shard_mapping_id, 1);
-
-        add_next_index_zval(table_array, cur_table[i]);
-    }
-
-	return table_array;
+	return index->shard_table_count;
 }
 
 const myslqnd_fabric_strategy mysqlnd_fabric_strategy_dump = {
 	fabric_dump_init,
 	fabric_dump_deinit,
 	mysqlnd_fabric_dump_get_group_servers,
-	mysqlnd_fabric_dump_get_shard_servers
+	mysqlnd_fabric_dump_get_shard_servers,
+	mysqlnd_fabric_dump_get_shard_tables
 };
 
 /*

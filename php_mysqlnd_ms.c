@@ -894,18 +894,66 @@ static PHP_FUNCTION(mysqlnd_ms_fabric_select_group)
 }
 /* }}} */
 
-ZEND_BEGIN_ARG_INFO_EX(arginfo_mysqlnd_ms_fabric_get_shard_tables, 0, 0, 0)
+ZEND_BEGIN_ARG_INFO_EX(arginfo_mysqlnd_ms_fabric_get_shard_tables, 0, 0, 1)
+	ZEND_ARG_INFO(0, connection)
 ZEND_END_ARG_INFO()
 
-/* {{{ proto long mysqlnd_ms_fabric_select_group(mixed connection, string group, bool readonly)
-   Pick server configuration for a given group
-   
-   Note: the readonly parameter is currently unused,
-   and is included for future compatibility
+/* {{{ proto array mysqlnd_ms_fabric_get_shard_tables(mixed connection)
+	Get an array of sharded table data for the connection
 */
 static PHP_FUNCTION(mysqlnd_ms_fabric_get_shard_tables)
 {
-	return_value = mysqlnd_ms_fabric_get_shard_tables();
+	zval *conn_zv;
+
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "z", &conn_zv)) {
+		return;
+	}
+
+	MYSQLND *proxy_conn;
+	MYSQLND_MS_CONN_DATA **conn_data = NULL;
+
+	if (!(proxy_conn = zval_to_mysqlnd_inherited(conn_zv TSRMLS_CC))) {
+		RETVAL_FALSE;
+		DBG_VOID_RETURN;
+	}
+
+	conn_data = (MYSQLND_MS_CONN_DATA **) mysqlnd_plugin_get_plugin_connection_data_data(proxy_conn->data, mysqlnd_ms_plugin_id);
+	if (!conn_data || !(*conn_data)) {
+		php_error_docref(NULL TSRMLS_CC, E_WARNING, MYSQLND_MS_ERROR_PREFIX " No mysqlnd_ms connection");
+		RETVAL_FALSE;
+		DBG_VOID_RETURN;
+	}
+
+	if (!(*conn_data)->fabric) {
+		php_error_docref(NULL TSRMLS_CC, E_WARNING, MYSQLND_MS_ERROR_PREFIX " Connection is not configured to use MySQL Fabric");
+		RETVAL_FALSE;
+		DBG_VOID_RETURN;
+	}
+
+	mysqlnd_fabric_shard_table **tables;
+	int num_tables;
+	zval *table_array;
+	int i;
+
+	num_tables = mysqlnd_fabric_get_shard_tables(&tables, (*conn_data)->fabric);
+
+    ALLOC_INIT_ZVAL(table_array);
+    array_init(table_array);
+
+    zval *cur_table[num_tables];
+    for (i = 0; i < num_tables; ++i) {
+        ALLOC_INIT_ZVAL(cur_table[i]);
+        array_init(cur_table[i]);
+
+        add_assoc_string(cur_table[i], "schema", tables[i]->schema_name, 1);
+        add_assoc_string(cur_table[i], "table", tables[i]->table_name, 1);
+        add_assoc_string(cur_table[i], "column", tables[i]->table_name, 1);
+        add_assoc_long(cur_table[i], "shard_mapping_id", tables[i]->shard_mapping_id);
+
+        add_next_index_zval(table_array, cur_table[i]);
+    }
+
+	return_value = table_array;
 }
 /* }}} */
 
@@ -1391,6 +1439,7 @@ static const zend_function_entry mysqlnd_ms_functions[] = {
 	PHP_FE(mysqlnd_ms_fabric_select_shard, arginfo_mysqlnd_ms_fabric_select_shard)
 	PHP_FE(mysqlnd_ms_fabric_select_global, arginfo_mysqlnd_ms_fabric_select_global)
 	PHP_FE(mysqlnd_ms_fabric_select_group, arginfo_mysqlnd_ms_fabric_select_group)
+	PHP_FE(mysqlnd_ms_fabric_get_shard_tables, arginfo_mysqlnd_ms_fabric_get_shard_tables)
 	PHP_FE(mysqlnd_ms_dump_servers, arginfo_mysqlnd_ms_dump_servers)
 	PHP_FE(mysqlnd_ms_dump_fabric_rpc_hosts, arginfo_mysqlnd_ms_dump_servers)
 #ifdef PHP_DEBUG
