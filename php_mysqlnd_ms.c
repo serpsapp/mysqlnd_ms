@@ -930,7 +930,7 @@ static PHP_FUNCTION(mysqlnd_ms_fabric_get_shard_tables)
 		DBG_VOID_RETURN;
 	}
 
-	mysqlnd_fabric_shard_table **tables;
+	mysqlnd_fabric_shard_table *tables;
 	int num_tables;
 	zval *table_array;
 	int i;
@@ -945,10 +945,10 @@ static PHP_FUNCTION(mysqlnd_ms_fabric_get_shard_tables)
         ALLOC_INIT_ZVAL(cur_table[i]);
         array_init(cur_table[i]);
 
-        add_assoc_string(cur_table[i], "schema", tables[i]->schema_name, 1);
-        add_assoc_string(cur_table[i], "table", tables[i]->table_name, 1);
-        add_assoc_string(cur_table[i], "column", tables[i]->table_name, 1);
-        add_assoc_long(cur_table[i], "shard_mapping_id", tables[i]->shard_mapping_id);
+        add_assoc_string(cur_table[i], "schema", tables[i].schema_name, 1);
+        add_assoc_string(cur_table[i], "table", tables[i].table_name, 1);
+        add_assoc_string(cur_table[i], "column", tables[i].table_name, 1);
+        add_assoc_long(cur_table[i], "shard_mapping_id", tables[i].shard_mapping_id);
 
         add_next_index_zval(table_array, cur_table[i]);
     }

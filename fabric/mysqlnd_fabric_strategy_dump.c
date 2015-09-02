@@ -697,7 +697,7 @@ static int mysqlnd_fabric_dump_get_shard_tables(mysqlnd_fabric_shard_table **tab
 		fabric_set_raw_data_from_fabric(fabric);
 	}
 
-	*tables = &(index->shard_table);
+	*tables = index->shard_table;
 
 	return index->shard_table_count;
 }

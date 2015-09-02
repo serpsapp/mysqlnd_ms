@@ -92,7 +92,7 @@ enum mysqlnd_fabric_hint {
 
 mysqlnd_fabric_server *mysqlnd_fabric_get_group_servers(mysqlnd_fabric *fabric, const char *group);
 mysqlnd_fabric_server *mysqlnd_fabric_get_shard_servers(mysqlnd_fabric *fabric, const char *table, const char *key, enum mysqlnd_fabric_hint hint);
-int mysqlnd_fabric_get_shard_tables(mysqlnd_fabric_shard_table ***tables, mysqlnd_fabric *fabric);
+int mysqlnd_fabric_get_shard_tables(mysqlnd_fabric_shard_table **tables, mysqlnd_fabric *fabric);
 void mysqlnd_fabric_free_server_list(mysqlnd_fabric_server *servers);
 
 #endif	/* MYSQLND_FABRIC_H */
