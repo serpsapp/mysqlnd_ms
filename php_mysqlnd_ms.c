@@ -932,28 +932,24 @@ static PHP_FUNCTION(mysqlnd_ms_fabric_get_shard_tables)
 
 	mysqlnd_fabric_shard_table *tables;
 	int num_tables;
-	zval *table_array;
 	int i;
 
 	num_tables = mysqlnd_fabric_get_shard_tables(&tables, (*conn_data)->fabric);
 
-    ALLOC_INIT_ZVAL(table_array);
-    array_init(table_array);
+    array_init(return_value);
 
     zval *cur_table[num_tables];
     for (i = 0; i < num_tables; ++i) {
-        ALLOC_INIT_ZVAL(cur_table[i]);
+        MAKE_STD_ZVAL(cur_table[i]);
         array_init(cur_table[i]);
 
-        add_assoc_string(cur_table[i], "schema", tables[i].schema_name, 1);
-        add_assoc_string(cur_table[i], "table", tables[i].table_name, 1);
-        add_assoc_string(cur_table[i], "column", tables[i].table_name, 1);
-        add_assoc_long(cur_table[i], "shard_mapping_id", tables[i].shard_mapping_id);
+        add_assoc_string_ex(cur_table[i], "schema", sizeof("schema"), tables[i].schema_name, 1);
+        add_assoc_string_ex(cur_table[i], "table", sizeof("table"), tables[i].table_name, 1);
+        add_assoc_string_ex(cur_table[i], "column", sizeof("column"), tables[i].column_name, 1);
+        add_assoc_long_ex(cur_table[i], "shard_mapping_id", sizeof("shard_mapping_id"), tables[i].shard_mapping_id);
 
-        add_next_index_zval(table_array, cur_table[i]);
+        add_next_index_zval(return_value, cur_table[i]);
     }
-
-	return_value = table_array;
 }
 /* }}} */
 
