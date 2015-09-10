@@ -139,6 +139,7 @@ mysqlnd_fabric_server *mysqlnd_fabric_get_shard_servers(mysqlnd_fabric *fabric, 
 int mysqlnd_fabric_get_shard_tables(mysqlnd_fabric_shard_table **tables, mysqlnd_fabric *fabric)
 {
 	if (!fabric->host_count) {
+		TSRMLS_FETCH();
 		php_error_docref(NULL TSRMLS_CC, E_WARNING, MYSQLND_MS_ERROR_PREFIX " No Fabric hosts found!");
 		return 0;
 	}
