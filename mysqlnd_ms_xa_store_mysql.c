@@ -1010,7 +1010,11 @@ mysqlnd_ms_xa_store_mysql_do_gc_one(void * data,
 		DBG_RETURN(ret);
 	}
 
+#ifdef TRANS_START_NO_OPT
 	if (PASS != mysqlnd_begin_transaction(store_data->conn, TRANS_START_NO_OPT, NULL)) {
+#else
+	if (PASS != mysqlnd_begin_transaction(store_data->conn)) {
+#endif
 		COPY_SQL_ERROR(store_data->conn, error_info);
 		DBG_RETURN(ret);
 	}
@@ -1289,7 +1293,11 @@ gc_one_exit:
 	if (store_trx_id_list) {
 		zval_ptr_dtor(&store_trx_id_list);
 	}
+#ifdef TRANS_COR_NO_OPT
 	if (PASS != (ok = mysqlnd_commit(store_data->conn, TRANS_COR_NO_OPT, NULL))) {
+#else
+	if (PASS != (ok = mysqlnd_commit(store_data->conn))) {
+#endif
 		COPY_SQL_ERROR(store_data->conn, error_info);
 		ret = FAIL;
 	}

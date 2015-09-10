@@ -27,6 +27,14 @@
 #include "sys/time.h"
 #endif
 
+#ifndef SMART_STR_START_SIZE
+#define SMART_STR_START_SIZE 1024
+#endif
+#ifndef SMART_STR_PREALLOC
+#define SMART_STR_PREALLOC 256
+#endif
+#include "ext/standard/php_smart_str.h"
+
 #include "fabric/mysqlnd_fabric.h"
 
 #if MYSQLND_VERSION_ID < 50010 && !defined(MYSQLND_CONN_DATA_DEFINED)
