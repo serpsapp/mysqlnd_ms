@@ -549,7 +549,7 @@ void fabric_set_raw_data_from_fabric(mysqlnd_fabric *fabric)
  * Lookup *
  **********/
 
-static int mysqlnd_fabric_get_shard_for_table(const mysqlnd_fabric *fabric, const char *table_i, size_t table_len)
+static int mysqlnd_fabric_get_shard_for_table(const mysqlnd_fabric *fabric, const char *table_i, size_t table_len, enum mysqlnd_fabric_hint hint)
 {
 	int i;
 	char *table;
@@ -572,6 +572,16 @@ static int mysqlnd_fabric_get_shard_for_table(const mysqlnd_fabric *fabric, cons
 			&& !strncmp(index->shard_table[i].table_name,  table, table_len - (table-schema)))
 		{
 			return index->shard_table[i].shard_mapping_id;
+		}
+	}
+
+	// We didn't find our table in the shard table listing
+	// If we're selecting a global table, assume it's unsharded and just use the first mapping
+	// Fabric behavior seems poorly defined in this case, per Mats Kindahl's comment here:
+	// http://blog.ulf-wendel.de/2013/mysql-5-7-fabric-any-good/#comment-34915
+	if(hint == GLOBAL) {
+		if(index->shard_mapping_count) {
+			return index->shard_mapping[0].shard_mapping_id;
 		}
 	}
 
@@ -663,7 +673,7 @@ static mysqlnd_fabric_server *mysqlnd_fabric_dump_get_shard_servers(mysqlnd_fabr
 		fabric_set_raw_data_from_fabric(fabric);
 	}
 
-	shard_mapping_id = mysqlnd_fabric_get_shard_for_table(fabric, table, strlen(table));
+	shard_mapping_id = mysqlnd_fabric_get_shard_for_table(fabric, table, strlen(table), hint);
 	if (shard_mapping_id == -1) {
 		return NULL;
 	}

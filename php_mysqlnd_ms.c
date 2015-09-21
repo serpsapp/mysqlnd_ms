@@ -697,6 +697,7 @@ static void mysqlnd_ms_fabric_select_servers(zval *return_value, zval *conn_zv, 
 	MYSQLND_MS_LIST_DATA * data;
 
 	DBG_ENTER("mysqlnd_ms_fabric_select_servers");
+	DBG_INF_FMT("Table %s, key %s, hint %d", table, key, hint);
 
 	if (!(proxy_conn = zval_to_mysqlnd_inherited(conn_zv TSRMLS_CC))) {
 		RETVAL_FALSE;
