@@ -28,7 +28,6 @@ if test "$PHP_MYSQLND_MS" && test "$PHP_MYSQLND_MS" != "no"; then
                   fabric/mysqlnd_fabric_strategy_direct.c \
                   fabric/mysqlnd_fabric_strategy_dump.c \
                   fabric/mysqlnd_fabric_php.c \
-                  fabric/libdigest/digest.c \
                   mysqlnd_ms_xa.c mysqlnd_ms_xa_store_mysql.c \
                   mysqlnd_ms_conn_pool.c"
 
@@ -43,16 +42,6 @@ if test "$PHP_MYSQLND_MS" && test "$PHP_MYSQLND_MS" != "no"; then
     PHP_ADD_EXTENSION_DEP(mysqlnd_ms, mysqlnd_qc)
     AC_DEFINE([MYSQLND_MS_HAVE_MYSQLND_QC], 1, [Whether mysqlnd_qc is enabled])
   fi
-
-  dnl TODO: This doesn't seem to work
-  APRNAME="aprutil-1"
-  PHP_CHECK_LIBRARY($APRNAME,apr_md5_init,
-  [
-    PHP_EVAL_LIBLINE(`pkg-config --libs apr-util-1`)
-    PHP_EVAL_INCLINE(`pkg-config --cflags apr-util-1`)
-  ],[
-    AC_MSG_ERROR([wrong lib$APRNAME version or library not found])
-  ])
 
   PHP_SETUP_LIBXML(XMLWRITER_SHARED_LIBADD, [
     PHP_ADD_EXTENSION_DEP(mysqlnd_ms, mysqlnd)
