@@ -28,25 +28,14 @@
 #include "mysqlnd_fabric.h"
 #include "mysqlnd_fabric_priv.h"
 
+php_stream *mysqlnd_fabric_handle_digest_auth(php_stream *stream);
+
 char *mysqlnd_fabric_http(mysqlnd_fabric *fabric, char *url, char *request_body, size_t request_body_len, size_t *response_len)
 {
 	char *retval;
 	zval method, content, header, ignore_errors;
 	php_stream_context *ctxt;
 	php_stream *stream = NULL;
-
-	zval *wrapperdata, **curhead;
-	int response_code;
-	char *digest;
-	char *lasttok, *curtok;
-	int toklen;
-	int in_quotes = 0;
-	zend_function *func_cache = NULL;
-	zval todigest, *ha1, *ha2, *digest_response;
-	char *digest_orig, *digest_copy;
-	char *realm, *nonce, *qop;
-	char cnonce[] = "[random nonce here]";
-	char todigest_str[256];
 
 	TSRMLS_FETCH();
 	
@@ -73,17 +62,55 @@ char *mysqlnd_fabric_http(mysqlnd_fabric *fabric, char *url, char *request_body,
 
 	/* TODO: Switch to quiet mode? */
 	stream = php_stream_open_wrapper_ex(url, "rb", REPORT_ERRORS, NULL, ctxt);
+	stream = mysqlnd_fabric_handle_digest_auth(stream);
 	if (!stream) {
 		*response_len = 0;
 		return NULL;
 	}
 
+
+	*response_len = php_stream_copy_to_mem(stream, &retval, PHP_STREAM_COPY_ALL, 0);
+	php_stream_close(stream);
+  
+	return retval;
+}
+
+/**
+ * mysqlnd_fabric_handle_digest_auth
+ *
+ * Takes a php_stream in, and returns a php_stream or NULL
+ * If the php_stream has a 200 response, returns unmangled
+ * If the php_stream has a 401 response, attempts to do the
+ * digest auth, and returns the authed response
+ *
+ * Otherwise, returns null
+ */
+php_stream *mysqlnd_fabric_handle_digest_auth(php_stream *stream) {
+	zval **curhead;
+	int response_code;
+
+	char *header_orig, *header_copy;
+	char *lasttok, *curtok;
+	int toklen;
+	int in_quotes = 0;
+
+	zend_function *func_cache = NULL;
+	zval hash_in, *ha1, *ha2, *hash_out;
+	char *realm, *nonce, *qop;
+	char cnonce[] = "[random nonce here]";
+	char nonceCount[] = "1";
+	char hash_in_str[256];
+
+	if(!stream) { return NULL; }
+
 	zend_hash_internal_pointer_reset(Z_ARRVAL_P(stream->wrapperdata));
 	zend_hash_get_current_data(Z_ARRVAL_P(stream->wrapperdata), (void**)&curhead);
-	// Stolen from http_fopen_wrapper.c in PHP source
+	// Response code parsing stolen from http_fopen_wrapper.c in PHP source
 	if(Z_STRLEN_PP(curhead) > 9) {
 		response_code = atoi(Z_STRVAL_PP(curhead) + 9);
-		if(response_code == 401) {
+		if(response_code == 200) {
+			return stream;
+		} else if(response_code == 401) {
 			do {
 				zend_hash_move_forward(Z_ARRVAL_P(stream->wrapperdata));
 				if(zend_hash_get_current_data(Z_ARRVAL_P(stream->wrapperdata), (void**)&curhead) != SUCCESS) {
@@ -91,13 +118,11 @@ char *mysqlnd_fabric_http(mysqlnd_fabric *fabric, char *url, char *request_body,
 				}
 			} while(strncmp(Z_STRVAL_PP(curhead), "WWW-Authenticate: Digest", sizeof("WWW-Authenticate: Digest") - 1) != 0);
 			
-			//TODO: Extract this properly, this doesn't work
-			//Also, need to copy so we don't modify curhead
 			in_quotes = 0;
-			digest_orig = Z_STRVAL_PP(curhead);
-			digest_copy = malloc(Z_STRLEN_PP(curhead)+1);
-			strncpy(digest_copy, digest_orig, Z_STRLEN_PP(curhead));
-			curtok = digest_copy;
+			header_orig = Z_STRVAL_PP(curhead);
+			header_copy = malloc(Z_STRLEN_PP(curhead)+1);
+			strncpy(header_copy, header_orig, Z_STRLEN_PP(curhead));
+			curtok = header_copy;
 			lasttok = curtok;
 			while(curtok = strtok(curtok, " =,")) {
 				toklen = strlen(curtok);
@@ -105,7 +130,7 @@ char *mysqlnd_fabric_http(mysqlnd_fabric *fabric, char *url, char *request_body,
 				if(in_quotes) {
 					// Replace the nulled character
 					// Pointer math, yay
-					curtok[-1] = digest_orig[(curtok - 1) - digest_copy];
+					curtok[-1] = header_orig[(curtok - 1) - header_copy];
 
 					// Check for an ending quote
 					if(curtok[toklen - 1] == '"') {
@@ -139,32 +164,32 @@ char *mysqlnd_fabric_http(mysqlnd_fabric *fabric, char *url, char *request_body,
 			if(realm && nonce && qop) {
 				ALLOC_INIT_ZVAL(ha1);
 				ALLOC_INIT_ZVAL(ha2);
-				INIT_ZVAL(todigest);
+				INIT_ZVAL(hash_in);
 
-				//TODO: Make these parameterized
-				snprintf(todigest_str, 256, "%s:%s:%s", "admin", realm, "***REMOVED***");
-				ZVAL_STRINGL(&todigest, todigest_str, strlen(todigest_str), 0);
-				zend_call_method_with_1_params(NULL, NULL, &func_cache, "md5", &ha1, &todigest);
+				//TODO: Make the rest of these parameterized
+				snprintf(hash_in_str, 256, "%s:%s:%s", "admin", realm, "***REMOVED***");
+				ZVAL_STRINGL(&hash_in, hash_in_str, strlen(hash_in_str), 0);
+				zend_call_method_with_1_params(NULL, NULL, &func_cache, "md5", &ha1, &hash_in);
 				printf("%s", Z_STRVAL_P(ha1));
 
-				snprintf(todigest_str, 256, "%s:%s", "POST", url);
-				ZVAL_STRINGL(&todigest, todigest_str, strlen(todigest_str), 0);
-				zend_call_method_with_1_params(NULL, NULL, &func_cache, "md5", &ha2, &todigest);
+				snprintf(hash_in_str, 256, "%s:%s", "POST", stream->orig_path);
+				ZVAL_STRINGL(&hash_in, hash_in_str, strlen(hash_in_str), 0);
+				zend_call_method_with_1_params(NULL, NULL, &func_cache, "md5", &ha2, &hash_in);
 				printf("%s", Z_STRVAL_P(ha2));
 
-				snprintf(todigest_str, 256, "%s:%s:%s:%s:%s:%s",
-					Z_STRVAL_P(ha1), nonce, "1", cnonce, qop, Z_STRVAL_P(ha2));
-				ZVAL_STRINGL(&todigest, todigest_str, strlen(todigest_str), 0);
-				zend_call_method_with_1_params(NULL, NULL, &func_cache, "md5", &digest_response, &todigest);
-				printf("%s", Z_STRVAL_P(digest_response));
+				snprintf(hash_in_str, 256, "%s:%s:%s:%s:%s:%s",
+				Z_STRVAL_P(ha1), nonce, nonceCount, cnonce, qop, Z_STRVAL_P(ha2));
+				ZVAL_STRINGL(&hash_in, hash_in_str, strlen(hash_in_str), 0);
+				zend_call_method_with_1_params(NULL, NULL, &func_cache, "md5", &hash_out, &hash_in);
+				printf("%s", Z_STRVAL_P(hash_out));
+			} else {
+				//TODO: Raise an error/notice
+				return NULL;
 			}
 		}
 	}
-	
-	*response_len = php_stream_copy_to_mem(stream, &retval, PHP_STREAM_COPY_ALL, 0);
-	php_stream_close(stream);
-  
-	return retval;
+
+	return NULL;
 }
 
 /*
