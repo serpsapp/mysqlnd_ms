@@ -96,10 +96,13 @@ php_stream *mysqlnd_fabric_handle_digest_auth(php_stream *stream) {
 
 	zend_function *func_cache = NULL;
 	zval hash_in, *ha1, *ha2, *hash_out;
-	char *realm, *nonce, *qop;
+	char *realm, *nonce, *qop, *opaque;
 	char cnonce[] = "[random nonce here]";
 	char nonceCount[] = "1";
 	char hash_in_str[256];
+	char *response_header, *rh_curpos;
+	zval *context_header, **chptr;
+	int response_header_len;
 
 	if(!stream) { return NULL; }
 
@@ -156,6 +159,7 @@ php_stream *mysqlnd_fabric_handle_digest_auth(php_stream *stream) {
 				if(strncmp(lasttok, "realm", sizeof("realm")) == 0) { realm = curtok; }
 				else if(strncmp(lasttok, "nonce", sizeof("nonce")) == 0) { nonce = curtok; }
 				else if(strncmp(lasttok, "qop", sizeof("qop")) == 0) { qop = curtok; }
+				else if(strncmp(lasttok, "opaque", sizeof("opaque")) == 0) { opaque = curtok; }
 
 				lasttok = curtok;
 				curtok = NULL;
@@ -182,6 +186,48 @@ php_stream *mysqlnd_fabric_handle_digest_auth(php_stream *stream) {
 				ZVAL_STRINGL(&hash_in, hash_in_str, strlen(hash_in_str), 0);
 				zend_call_method_with_1_params(NULL, NULL, &func_cache, "md5", &hash_out, &hash_in);
 				printf("%s", Z_STRVAL_P(hash_out));
+
+				// Build the response header
+				// Get any previous headers
+				ALLOC_INIT_ZVAL(context_header);
+				chptr = &context_header;
+				php_stream_context_get_option(stream->context, "http", "header", &chptr);
+
+				// Allocate original header + 2x response header, should be plenty
+				response_header_len = Z_STRLEN_P(context_header) + strlen(header_orig)*2;
+				response_header = malloc(response_header_len + 1);
+				rh_curpos = response_header;
+
+				strncpy(rh_curpos, Z_STRVAL_P(context_header), Z_STRLEN_P(context_header));
+				rh_curpos += Z_STRLEN_P(context_header);
+				strncpy(rh_curpos, "\r\n", 2);
+				rh_curpos += 2;
+				strncpy(rh_curpos, "Authorization: Digest", strlen("Authorization: Digest"));
+				rh_curpos += strlen("Authorization: Digest");
+				rh_curpos += snprintf(rh_curpos, response_header_len - (rh_curpos - response_header),
+					" username=\"%s\","
+					" realm=\"%s\","
+					" nonce=\"%s\","
+					" uri=\"%s\","
+					" qop=auth,"
+					" nc=\"%s\","
+					" cnonce=\"%s\","
+					" response=\"%s\","
+					" opaque=\"%s\""
+					"\r\n",
+					"admin",
+					realm,
+					nonce,
+					stream->orig_path,
+					nonceCount,
+					cnonce,
+					Z_STRVAL_P(hash_out),
+					opaque);
+
+				ZVAL_STRING(context_header, response_header, 0);
+				php_stream_context_set_option(stream->context, "http", "header", context_header);
+
+				return php_stream_open_wrapper_ex(stream->orig_path, "rb", REPORT_ERRORS, NULL, stream->context);
 			} else {
 				//TODO: Raise an error/notice
 				return NULL;
