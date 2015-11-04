@@ -96,9 +96,11 @@ php_stream *mysqlnd_fabric_handle_digest_auth(php_stream *stream) {
 
 	zend_function *func_cache = NULL;
 	zval hash_in, *ha1, *ha2, *hash_out;
-	char *realm, *nonce, *qop, *opaque;
-	char cnonce[] = "[random nonce here]";
-	char nonceCount[] = "1";
+	char *realm, *nonce, *qop, *opaque, *algorithm;
+	// TODO: Extract from stream->orig_path
+	char uri[] = "/";
+	char cnonce[] = "deadbeef";
+	int nonceCount = 1;
 	char hash_in_str[256];
 	char *response_header, *rh_curpos;
 	zval *context_header, **chptr;
@@ -160,10 +162,13 @@ php_stream *mysqlnd_fabric_handle_digest_auth(php_stream *stream) {
 				else if(strncmp(lasttok, "nonce", sizeof("nonce")) == 0) { nonce = curtok; }
 				else if(strncmp(lasttok, "qop", sizeof("qop")) == 0) { qop = curtok; }
 				else if(strncmp(lasttok, "opaque", sizeof("opaque")) == 0) { opaque = curtok; }
+				else if(strncmp(lasttok, "algorithm", sizeof("algorithm")) == 0) { algorithm = curtok; }
 
 				lasttok = curtok;
 				curtok = NULL;
 			}
+			
+			printf("Responding to: %s\n", header_orig);
 
 			if(realm && nonce && qop) {
 				ALLOC_INIT_ZVAL(ha1);
@@ -172,26 +177,28 @@ php_stream *mysqlnd_fabric_handle_digest_auth(php_stream *stream) {
 
 				//TODO: Make the rest of these parameterized
 				snprintf(hash_in_str, 256, "%s:%s:%s", "admin", realm, "***REMOVED***");
+				printf("Hashing <%s>...\n", hash_in_str);
 				ZVAL_STRINGL(&hash_in, hash_in_str, strlen(hash_in_str), 0);
 				zend_call_method_with_1_params(NULL, NULL, &func_cache, "md5", &ha1, &hash_in);
-				printf("%s", Z_STRVAL_P(ha1));
+				printf("Output: %s\n", Z_STRVAL_P(ha1));
 
-				snprintf(hash_in_str, 256, "%s:%s", "POST", stream->orig_path);
+				snprintf(hash_in_str, 256, "%s:%s", "POST", uri);
+				printf("Hashing <%s>...\n", hash_in_str);
 				ZVAL_STRINGL(&hash_in, hash_in_str, strlen(hash_in_str), 0);
 				zend_call_method_with_1_params(NULL, NULL, &func_cache, "md5", &ha2, &hash_in);
-				printf("%s", Z_STRVAL_P(ha2));
+				printf("Output: %s\n", Z_STRVAL_P(ha2));
 
-				snprintf(hash_in_str, 256, "%s:%s:%s:%s:%s:%s",
+				snprintf(hash_in_str, 256, "%s:%s:%08x:%s:%s:%s",
 				Z_STRVAL_P(ha1), nonce, nonceCount, cnonce, qop, Z_STRVAL_P(ha2));
+				printf("Hashing <%s>...\n", hash_in_str);
 				ZVAL_STRINGL(&hash_in, hash_in_str, strlen(hash_in_str), 0);
 				zend_call_method_with_1_params(NULL, NULL, &func_cache, "md5", &hash_out, &hash_in);
-				printf("%s", Z_STRVAL_P(hash_out));
+				printf("Output: %s\n", Z_STRVAL_P(hash_out));
 
 				// Build the response header
 				// Get any previous headers
-				ALLOC_INIT_ZVAL(context_header);
-				chptr = &context_header;
 				php_stream_context_get_option(stream->context, "http", "header", &chptr);
+				context_header = *chptr;
 
 				// Allocate original header + 2x response header, should be plenty
 				response_header_len = Z_STRLEN_P(context_header) + strlen(header_orig)*2;
@@ -210,20 +217,27 @@ php_stream *mysqlnd_fabric_handle_digest_auth(php_stream *stream) {
 					" nonce=\"%s\","
 					" uri=\"%s\","
 					" qop=auth,"
-					" nc=\"%s\","
+					" nc=%08x,"
 					" cnonce=\"%s\","
-					" response=\"%s\","
-					" opaque=\"%s\""
-					"\r\n",
+					" response=\"%s\",",
 					"admin",
 					realm,
 					nonce,
-					stream->orig_path,
+					uri,
 					nonceCount,
 					cnonce,
 					Z_STRVAL_P(hash_out),
 					opaque);
+				if(opaque) {
+					rh_curpos += snprintf(rh_curpos, response_header_len - (rh_curpos - response_header), " opaque=\"%s\",", opaque);
+				}
+				if(algorithm) {
+					rh_curpos += snprintf(rh_curpos, response_header_len - (rh_curpos - response_header), " algorithm=\"%s\",", algorithm);
+				}
+				// Overwrite the previous comma
+				snprintf(rh_curpos-1, response_header_len - (rh_curpos - response_header), "\r\n");
 
+				printf("Response header: %s\n", response_header);
 				ZVAL_STRING(context_header, response_header, 0);
 				php_stream_context_set_option(stream->context, "http", "header", context_header);
 
