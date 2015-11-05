@@ -148,10 +148,10 @@ php_stream *mysqlnd_fabric_handle_digest_auth(php_stream *stream) {
 			in_quotes = 0;
 			header_orig = Z_STRVAL_PP(curhead);
 			header_copy = malloc(Z_STRLEN_PP(curhead)+1);
-			strncpy(header_copy, header_orig, Z_STRLEN_PP(curhead));
+			strncpy(header_copy, header_orig, Z_STRLEN_PP(curhead)+1);
 			curtok = header_copy;
 			lasttok = curtok;
-			while(curtok = strtok(curtok, " =,")) {
+			while(curtok = strtok(curtok, " =,\r\n")) {
 				toklen = strlen(curtok);
 
 				if(in_quotes) {
