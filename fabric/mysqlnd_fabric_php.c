@@ -33,6 +33,7 @@ php_stream *mysqlnd_fabric_handle_digest_auth(php_stream *stream);
 char *mysqlnd_fabric_http(mysqlnd_fabric *fabric, char *url, char *request_body, size_t request_body_len, size_t *response_len)
 {
 	char *retval;
+	char *rpc_url;
 	zval method, content, header, ignore_errors;
 	php_stream_context *ctxt;
 	php_stream *stream = NULL;
@@ -60,8 +61,10 @@ char *mysqlnd_fabric_http(mysqlnd_fabric *fabric, char *url, char *request_body,
 	php_stream_context_set_option(ctxt, "http", "header", &header);
 	php_stream_context_set_option(ctxt, "http", "ignore_errors", &ignore_errors);
 
+	rpc_url = malloc(strlen(url) + 5);
+	snprintf(rpc_url, strlen(url) + 5, "%sRPC2", url);
 	/* TODO: Switch to quiet mode? */
-	stream = php_stream_open_wrapper_ex(url, "rb", REPORT_ERRORS, NULL, ctxt);
+	stream = php_stream_open_wrapper_ex(rpc_url, "rb", REPORT_ERRORS, NULL, ctxt);
 	stream = mysqlnd_fabric_handle_digest_auth(stream);
 	if (!stream) {
 		*response_len = 0;
