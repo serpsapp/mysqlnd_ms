@@ -1006,6 +1006,8 @@ mysqlnd_ms_init_with_fabric(struct st_mysqlnd_ms_config_json_entry * group_secti
 	fabric = mysqlnd_fabric_init(strategy, timeout, trx_warn);
 	while (hostlist_section && (host = mysqlnd_ms_config_json_next_sub_section(hostlist_section, NULL, NULL, NULL TSRMLS_CC))) {
 		host_entry_counter++;
+		char *username = mysqlnd_ms_config_json_string_from_section(host, "user", sizeof("user")-1, 0, NULL, NULL TSRMLS_CC);
+		char *password = mysqlnd_ms_config_json_string_from_section(host, "password", sizeof("password")-1, 0, NULL, NULL TSRMLS_CC);
 		char *url = mysqlnd_ms_config_json_string_from_section(host, "url", sizeof("url")-1, 0, NULL, NULL TSRMLS_CC);
 		if (!url) {
 			/* Fallback for 1.6.0-alpha compatibility */
@@ -1019,11 +1021,11 @@ mysqlnd_ms_init_with_fabric(struct st_mysqlnd_ms_config_json_entry * group_secti
 			}
 
 			spprintf(&url, 0, "http://%s:%d/", hostname, port);
-			mysqlnd_fabric_add_rpc_host(fabric, url);
+			mysqlnd_fabric_add_rpc_host(fabric, url, username, password);
 			mnd_efree(hostname);
 			efree(url);
 		} else {
-			mysqlnd_fabric_add_rpc_host(fabric, url);
+			mysqlnd_fabric_add_rpc_host(fabric, url, username, password);
 			mnd_efree(url);
 		}
 	}

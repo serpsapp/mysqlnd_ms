@@ -28,9 +28,7 @@
 #include "mysqlnd_fabric.h"
 #include "mysqlnd_fabric_priv.h"
 
-#include "mysqlnd_ms_config_json.h"
-
-php_stream *mysqlnd_fabric_handle_digest_auth(php_stream *stream);
+php_stream *mysqlnd_fabric_handle_digest_auth(php_stream *stream, char* username, char* password);
 
 char *mysqlnd_fabric_http(mysqlnd_fabric *fabric, char *url, char *request_body, size_t request_body_len, size_t *response_len)
 {
@@ -67,7 +65,7 @@ char *mysqlnd_fabric_http(mysqlnd_fabric *fabric, char *url, char *request_body,
 	snprintf(rpc_url, strlen(url) + 5, "%sRPC2", url);
 	/* TODO: Switch to quiet mode? */
 	stream = php_stream_open_wrapper_ex(rpc_url, "rb", REPORT_ERRORS, NULL, ctxt);
-	stream = mysqlnd_fabric_handle_digest_auth(stream);
+	stream = mysqlnd_fabric_handle_digest_auth(stream, fabric->hosts[0].username, fabric->hosts[0].password);
 	if (!stream) {
 		*response_len = 0;
 		return NULL;
@@ -90,7 +88,7 @@ char *mysqlnd_fabric_http(mysqlnd_fabric *fabric, char *url, char *request_body,
  *
  * Otherwise, returns null
  */
-php_stream *mysqlnd_fabric_handle_digest_auth(php_stream *stream) {
+php_stream *mysqlnd_fabric_handle_digest_auth(php_stream *stream, char *username, char *password) {
 	zval **curhead;
 	int response_code;
 
@@ -102,7 +100,6 @@ php_stream *mysqlnd_fabric_handle_digest_auth(php_stream *stream) {
 	zend_function *func_cache = NULL;
 	zval hash_in, *ha1, *ha2, *hash_out;
 	char *realm, *nonce, *qop, *opaque, *algorithm, *uri;
-	zval *user, *password;
 	int numslashes = 0, urlpos, urllen;
 	char cnonce[100];
 	int cnoncePos;
@@ -112,36 +109,7 @@ php_stream *mysqlnd_fabric_handle_digest_auth(php_stream *stream) {
 	zval *context_header, **chptr;
 	int response_header_len;
 
-	HashTable *cfg, *hosts;
-	zval *cfg_zval;
-
 	if(!stream) { return NULL; }
-
-	if(FALSE == mysql_ms_global_config_loaded) {
-		php_error_docref(NULL TSRMLS_CC, E_WARNING, MYSQLND_MS_ERROR_PREFIX "mysqlnd JSON config not loaded!");
-		return NULL;
-	}
-	
-	cfg = mysqlnd_ms_json_config->main_section;
-	zend_hash_find(cfg, "serps", sizeof("serps"), (void**)&cfg_zval);
-	cfg = Z_ARRVAL_P(cfg_zval);
-	zend_hash_find(cfg, "fabric", sizeof("fabric"), (void**)&cfg_zval);
-	cfg = Z_ARRVAL_P(cfg_zval);
-	zend_hash_find(cfg, "hosts", sizeof("hosts"), (void**)&cfg_zval);
-	hosts = Z_ARRVAL_P(cfg_zval);
-	
-	zend_hash_internal_pointer_reset(hosts);
-	while(SUCCESS == zend_hash_get_current_data(hosts, (void**)&cfg_zval)) {
-		cfg = Z_ARRVAL_P(cfg_zval);
-		zend_hash_find(cfg, "host", sizeof("host"), (void**)&cfg_zval);
-		// TODO: Parameterize
-		if(strcmp(Z_STRVAL_P(cfg_zval), "dbtf1c") == 0) {
-			zend_hash_find(cfg, "user", sizeof("user"), (void**)&user);
-			zend_hash_find(cfg, "password", sizeof("password"), (void**)&password);
-			break;
-		}
-		zend_hash_move_forward(hosts);
-	}
 
 	// Extract path from URI
 	urllen = strlen(stream->orig_path);
@@ -229,7 +197,7 @@ php_stream *mysqlnd_fabric_handle_digest_auth(php_stream *stream) {
 				ALLOC_INIT_ZVAL(ha2);
 				INIT_ZVAL(hash_in);
 
-				snprintf(hash_in_str, 256, "%s:%s:%s", Z_STRVAL_P(user), realm, Z_STRVAL_P(password));
+				snprintf(hash_in_str, 256, "%s:%s:%s", username, realm, password);
 				printf("Hashing <%s>...\n", hash_in_str);
 				ZVAL_STRINGL(&hash_in, hash_in_str, strlen(hash_in_str), 0);
 				zend_call_method_with_1_params(NULL, NULL, &func_cache, "md5", &ha1, &hash_in);
@@ -273,7 +241,7 @@ php_stream *mysqlnd_fabric_handle_digest_auth(php_stream *stream) {
 					" nc=%08x,"
 					" cnonce=\"%s\","
 					" response=\"%s\",",
-					Z_STRVAL_P(user),
+					username,
 					realm,
 					nonce,
 					uri,

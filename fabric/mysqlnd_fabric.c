@@ -97,7 +97,7 @@ char *mysqlnd_fabric_get_error(mysqlnd_fabric *fabric)
 	return fabric->error;
 }
 
-int mysqlnd_fabric_add_rpc_host(mysqlnd_fabric *fabric, char *url)
+int mysqlnd_fabric_add_rpc_host(mysqlnd_fabric *fabric, char *url, char *username, char *password)
 {
 	if (fabric->host_count >= 10) {
 		TSRMLS_FETCH();
@@ -106,6 +106,8 @@ int mysqlnd_fabric_add_rpc_host(mysqlnd_fabric *fabric, char *url)
 	}
 
 	fabric->hosts[fabric->host_count].url = estrdup(url);
+	if(username) { fabric->hosts[fabric->host_count].username = estrdup(username); }
+	if(password) { fabric->hosts[fabric->host_count].password = estrdup(password); }
 	fabric->host_count++;
 
 	return 0;

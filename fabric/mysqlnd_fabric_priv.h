@@ -83,6 +83,8 @@ typedef struct {
 
 typedef struct {
 	char *url;
+	char *username;
+	char *password;
 } mysqlnd_fabric_rpc_host;
 
 #define MYSQLND_MS_ERRMSG_SIZE 1024
