@@ -41,7 +41,7 @@ char *mysqlnd_fabric_http(mysqlnd_fabric *fabric, char *url, char *request_body,
 	
 	ZVAL_STRINGL(&method, "POST", sizeof("POST")-1, 0);
 	ZVAL_STRINGL(&content, request_body, request_body_len, 0);
-	ZVAL_STRINGL(&header, "Content-type: text/xml", sizeof("Content-type: text/xml")-1, 0);
+	ZVAL_STRINGL(&header, "Content-Type: text/xml", sizeof("Content-Type: text/xml")-1, 0);
 	ZVAL_BOOL(&ignore_errors, 1);
 	
 	/* prevent anybody from freeing these */
@@ -96,10 +96,10 @@ php_stream *mysqlnd_fabric_handle_digest_auth(php_stream *stream) {
 
 	zend_function *func_cache = NULL;
 	zval hash_in, *ha1, *ha2, *hash_out;
-	char *realm, *nonce, *qop, *opaque, *algorithm;
-	// TODO: Extract from stream->orig_path
-	char uri[] = "/";
-	char cnonce[] = "deadbeef";
+	char *realm, *nonce, *qop, *opaque, *algorithm, *uri;
+	int numslashes = 0, urlpos, urllen;
+	char cnonce[100];
+	int cnoncePos;
 	int nonceCount = 1;
 	char hash_in_str[256];
 	char *response_header, *rh_curpos;
@@ -107,6 +107,25 @@ php_stream *mysqlnd_fabric_handle_digest_auth(php_stream *stream) {
 	int response_header_len;
 
 	if(!stream) { return NULL; }
+
+	// Extract path from URI
+	urllen = strlen(stream->orig_path);
+	for(urlpos = 0; urlpos < urllen; urlpos++) {
+		if(stream->orig_path[urlpos] == '/') {
+			numslashes++;
+		}
+		if(numslashes >= 3) {
+			break;
+		}
+	}
+	urllen -= urlpos;
+	uri = malloc(urllen + 1);
+	strncpy(uri, stream->orig_path + urlpos, urllen+1);
+
+	// Generate cnonce
+	// TODO: This should probably be more robust
+	cnoncePos = snprintf(cnonce, 100, "%x", rand());
+	snprintf(cnonce + cnoncePos, 100 - cnoncePos, "%x", time(NULL));
 
 	zend_hash_internal_pointer_reset(Z_ARRVAL_P(stream->wrapperdata));
 	zend_hash_get_current_data(Z_ARRVAL_P(stream->wrapperdata), (void**)&curhead);
@@ -238,7 +257,7 @@ php_stream *mysqlnd_fabric_handle_digest_auth(php_stream *stream) {
 				snprintf(rh_curpos-1, response_header_len - (rh_curpos - response_header), "\r\n");
 
 				printf("Response header: %s\n", response_header);
-				ZVAL_STRING(context_header, response_header, 0);
+				ZVAL_STRING(context_header, response_header, 1);
 				php_stream_context_set_option(stream->context, "http", "header", context_header);
 
 				return php_stream_open_wrapper_ex(stream->orig_path, "rb", REPORT_ERRORS, NULL, stream->context);
