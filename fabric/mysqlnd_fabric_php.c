@@ -190,31 +190,23 @@ php_stream *mysqlnd_fabric_handle_digest_auth(php_stream *stream, char *username
 				curtok = NULL;
 			}
 			
-			printf("Responding to: %s\n", header_orig);
-
 			if(realm && nonce && qop) {
 				ALLOC_INIT_ZVAL(ha1);
 				ALLOC_INIT_ZVAL(ha2);
 				INIT_ZVAL(hash_in);
 
 				snprintf(hash_in_str, 256, "%s:%s:%s", username, realm, password);
-				printf("Hashing <%s>...\n", hash_in_str);
 				ZVAL_STRINGL(&hash_in, hash_in_str, strlen(hash_in_str), 0);
 				zend_call_method_with_1_params(NULL, NULL, &func_cache, "md5", &ha1, &hash_in);
-				printf("Output: %s\n", Z_STRVAL_P(ha1));
 
 				snprintf(hash_in_str, 256, "%s:%s", "POST", uri);
-				printf("Hashing <%s>...\n", hash_in_str);
 				ZVAL_STRINGL(&hash_in, hash_in_str, strlen(hash_in_str), 0);
 				zend_call_method_with_1_params(NULL, NULL, &func_cache, "md5", &ha2, &hash_in);
-				printf("Output: %s\n", Z_STRVAL_P(ha2));
 
 				snprintf(hash_in_str, 256, "%s:%s:%08x:%s:%s:%s",
 				Z_STRVAL_P(ha1), nonce, nonceCount, cnonce, qop, Z_STRVAL_P(ha2));
-				printf("Hashing <%s>...\n", hash_in_str);
 				ZVAL_STRINGL(&hash_in, hash_in_str, strlen(hash_in_str), 0);
 				zend_call_method_with_1_params(NULL, NULL, &func_cache, "md5", &hash_out, &hash_in);
-				printf("Output: %s\n", Z_STRVAL_P(hash_out));
 
 				// Build the response header
 				// Get any previous headers
@@ -258,7 +250,6 @@ php_stream *mysqlnd_fabric_handle_digest_auth(php_stream *stream, char *username
 				// Overwrite the previous comma
 				snprintf(rh_curpos-1, response_header_len - (rh_curpos - response_header), "\r\n");
 
-				printf("Response header: %s\n", response_header);
 				ZVAL_STRING(context_header, response_header, 1);
 				php_stream_context_set_option(stream->context, "http", "header", context_header);
 
