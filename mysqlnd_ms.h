@@ -22,7 +22,7 @@
 #ifndef MYSQLND_MS_H
 #define MYSQLND_MS_H
 
-#define DBG_SHIMS
+//#define DBG_SHIMS
 
 #ifdef DBG_SHIMS
 #undef DBG_ENTER
