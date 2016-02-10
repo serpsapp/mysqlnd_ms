@@ -576,13 +576,11 @@ static int mysqlnd_fabric_get_shard_for_table(const mysqlnd_fabric *fabric, cons
 	}
 
 	// We didn't find our table in the shard table listing
-	// If we're selecting a global table, assume it's unsharded and just use the first mapping
+	// Just use the first mapping for unlisted tables
 	// Fabric behavior seems poorly defined in this case, per Mats Kindahl's comment here:
 	// http://blog.ulf-wendel.de/2013/mysql-5-7-fabric-any-good/#comment-34915
-	if(hint == GLOBAL) {
-		if(index->shard_mapping_count) {
-			return index->shard_mapping[0].shard_mapping_id;
-		}
+	if(index->shard_mapping_count) {
+		return index->shard_mapping[0].shard_mapping_id;
 	}
 
 	return -1;
