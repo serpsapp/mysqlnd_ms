@@ -361,6 +361,15 @@ enum mysqlnd_ms_transient_error_strategy
 #define DEFAULT_TRANSIENT_ERROR_MAX_RETRIES 1
 #define DEFAULT_TRANSIENT_ERROR_USLEEP_BEFORE_RETRY 100
 
+//TODO: This is preliminary
+typedef enum enum_connection_type
+{
+	CONN_TYPE_NOT_CONNECTED = -1,
+	CONN_TYPE_PLAIN = 0,
+	CONN_TYPE_MS,
+	CONN_TYPE_FABRIC
+};
+
 typedef enum mysqlnd_ms_collected_stats
 {
 	MS_STAT_USE_SLAVE,

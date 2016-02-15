@@ -204,6 +204,12 @@ PHP_MINIT_FUNCTION(mysqlnd_ms)
 	REGISTER_LONG_CONSTANT("MYSQLND_MS_QUERY_USE_SLAVE", USE_SLAVE, CONST_CS | CONST_PERSISTENT);
 	REGISTER_LONG_CONSTANT("MYSQLND_MS_QUERY_USE_LAST_USED", USE_LAST_USED, CONST_CS | CONST_PERSISTENT);
 
+	//TODO: This is preliminary
+	REGISTER_LONG_CONSTANT("MYSQLND_MS_CONN_TYPE_NOT_CONNECTED", CONN_TYPE_NOT_CONNECTED, CONST_CS | CONST_PERSISTENT);
+	REGISTER_LONG_CONSTANT("MYSQLND_MS_CONN_TYPE_PLAIN", CONN_TYPE_PLAIN, CONST_CS | CONST_PERSISTENT);
+	REGISTER_LONG_CONSTANT("MYSQLND_MS_CONN_TYPE_MS", CONN_TYPE_MS, CONST_CS | CONST_PERSISTENT);
+	REGISTER_LONG_CONSTANT("MYSQLND_MS_CONN_TYPE_FABRIC", CONN_TYPE_FABRIC, CONST_CS | CONST_PERSISTENT);
+
 #ifdef MYSQLND_MS_HAVE_FILTER_TABLE_PARTITION
 	REGISTER_LONG_CONSTANT("MYSQLND_MS_HAVE_FILTER_TABLE_PARTITION", 1, CONST_CS | CONST_PERSISTENT);
 #endif
@@ -682,6 +688,41 @@ static PHP_FUNCTION(mysqlnd_ms_get_stats)
 	mysqlnd_fill_stats_hash(mysqlnd_ms_stats, mysqlnd_ms_stats_values_names, return_value TSRMLS_CC ZEND_FILE_LINE_CC);
 
 	DBG_VOID_RETURN;
+}
+/* }}} */
+
+ZEND_BEGIN_ARG_INFO_EX(arginfo_mysqlnd_ms_conn_type, 0, 0, 1)
+	ZEND_ARG_INFO(0, connection)
+ZEND_END_ARG_INFO()
+
+/* {{{ proto long mysqlnd_ms_conn_type(mixed connection)
+   Determines the type of the given connection */
+static PHP_FUNCTION(mysqlnd_ms_conn_type)
+{
+	zval *conn_zv;
+
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "z", &conn_zv)) {
+		return;
+	}
+
+	MYSQLND *proxy_conn;
+	MYSQLND_MS_CONN_DATA **conn_data = NULL;
+
+	if (!(proxy_conn = zval_to_mysqlnd_inherited(conn_zv TSRMLS_CC))) {
+		RETURN_LONG(CONN_TYPE_NOT_CONNECTED);
+	}
+
+	conn_data = (MYSQLND_MS_CONN_DATA **) mysqlnd_plugin_get_plugin_connection_data_data(proxy_conn->data, mysqlnd_ms_plugin_id);
+	if (!conn_data || !(*conn_data)) {
+		RETURN_LONG(CONN_TYPE_NOT_CONNECTED);
+	}
+
+	if (!(*conn_data)->fabric) {
+		php_error_docref(NULL TSRMLS_CC, E_WARNING, MYSQLND_MS_ERROR_PREFIX " Connection is not configured to use MySQL Fabric");
+		RETURN_LONG(CONN_TYPE_MS);
+	}
+
+	RETURN_LONG(CONN_TYPE_FABRIC);
 }
 /* }}} */
 
@@ -1428,6 +1469,7 @@ static const zend_function_entry mysqlnd_ms_functions[] = {
 	PHP_FE(mysqlnd_ms_match_wild,	arginfo_mysqlnd_ms_match_wild)
 	PHP_FE(mysqlnd_ms_query_is_select,	arginfo_mysqlnd_ms_query_is_select)
 	PHP_FE(mysqlnd_ms_get_stats,	arginfo_mysqlnd_ms_get_stats)
+	PHP_FE(mysqlnd_ms_conn_type,	arginfo_mysqlnd_ms_conn_type)
 #if PHP_VERSION_ID > 50399
 	PHP_FE(mysqlnd_ms_get_last_used_connection,	arginfo_mysqlnd_ms_get_last_used_connection)
 	PHP_FE(mysqlnd_ms_get_last_gtid,	arginfo_mysqlnd_ms_get_last_gtid)
