@@ -714,11 +714,10 @@ static PHP_FUNCTION(mysqlnd_ms_conn_type)
 
 	conn_data = (MYSQLND_MS_CONN_DATA **) mysqlnd_plugin_get_plugin_connection_data_data(proxy_conn->data, mysqlnd_ms_plugin_id);
 	if (!conn_data || !(*conn_data)) {
-		RETURN_LONG(CONN_TYPE_NOT_CONNECTED);
+		RETURN_LONG(CONN_TYPE_PLAIN);
 	}
 
 	if (!(*conn_data)->fabric) {
-		php_error_docref(NULL TSRMLS_CC, E_WARNING, MYSQLND_MS_ERROR_PREFIX " Connection is not configured to use MySQL Fabric");
 		RETURN_LONG(CONN_TYPE_MS);
 	}
 
