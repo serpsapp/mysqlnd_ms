@@ -66,6 +66,8 @@ char *mysqlnd_fabric_http(mysqlnd_fabric *fabric, char *url, char *request_body,
 	/* TODO: Switch to quiet mode? */
 	stream = php_stream_open_wrapper_ex(rpc_url, "rb", REPORT_ERRORS, NULL, ctxt);
 	stream = mysqlnd_fabric_handle_digest_auth(stream, fabric->hosts[0].username, fabric->hosts[0].password);
+	free(rpc_url);
+
 	if (!stream) {
 		*response_len = 0;
 		return NULL;
@@ -136,6 +138,7 @@ php_stream *mysqlnd_fabric_handle_digest_auth(php_stream *stream, char *username
 	if(Z_STRLEN_PP(curhead) > 9) {
 		response_code = atoi(Z_STRVAL_PP(curhead) + 9);
 		if(response_code == 200) {
+			free(uri);
 			return stream;
 		} else if(response_code == 401) {
 			do {
@@ -253,14 +256,20 @@ php_stream *mysqlnd_fabric_handle_digest_auth(php_stream *stream, char *username
 				ZVAL_STRING(context_header, response_header, 1);
 				php_stream_context_set_option(stream->context, "http", "header", context_header);
 
+				free(uri);
+				free(header_copy);
+				free(response_header);
 				return php_stream_open_wrapper_ex(stream->orig_path, "rb", REPORT_ERRORS, NULL, stream->context);
 			} else {
 				//TODO: Raise an error/notice
+				free(uri);
+				free(header_copy);
 				return NULL;
 			}
 		}
 	}
 
+	free(uri);
 	return NULL;
 }
 
