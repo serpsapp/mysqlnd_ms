@@ -373,11 +373,16 @@ void fabric_set_raw_data_from_xmlstr(mysqlnd_fabric *fabric,
 	zend_call_method_with_1_params(NULL, NULL, &func_cache, "xmlrpc_decode", &tmp, &arg);
 	val_success = fabric_get_values_from_hash(tmp, &tmpp, err, err_size);
 	if(!val_success) {
+		pefree((void *)shard_table_xml, 0);
+		pefree((void *)shard_mapping_xml, 0);
+		pefree((void *)shard_index_xml, 0);
+		pefree((void *)server_xml, 0);
 		zval_dtor(tmp);
 		php_error_docref(NULL TSRMLS_CC, E_ERROR, err);
 	}
 	z_shard_table = *tmpp;
 	Z_ADDREF_P(z_shard_table);
+	pefree((void *)shard_table_xml, 0);
 	zval_dtor(tmp);
 
 	INIT_ZVAL(arg);
@@ -385,12 +390,16 @@ void fabric_set_raw_data_from_xmlstr(mysqlnd_fabric *fabric,
 	zend_call_method_with_1_params(NULL, NULL, &func_cache, "xmlrpc_decode", &tmp, &arg);
 	val_success = fabric_get_values_from_hash(tmp, &tmpp, err, err_size);
 	if(!val_success) {
+		pefree((void *)shard_mapping_xml, 0);
+		pefree((void *)shard_index_xml, 0);
+		pefree((void *)server_xml, 0);
 		zval_dtor(tmp);
 		zval_dtor(z_shard_table);
 		php_error_docref(NULL TSRMLS_CC, E_ERROR, err);
 	}
 	z_shard_mapping = *tmpp;
 	Z_ADDREF_P(z_shard_mapping);
+	pefree((void *)shard_mapping_xml, 0);
 	zval_dtor(tmp);
 
 	INIT_ZVAL(arg);
@@ -399,6 +408,8 @@ void fabric_set_raw_data_from_xmlstr(mysqlnd_fabric *fabric,
 	zend_call_method_with_1_params(NULL, NULL, &func_cache, "xmlrpc_decode", &tmp, &arg);
 	val_success = fabric_get_values_from_hash(tmp, &tmpp, err, err_size);
 	if(!val_success) {
+		pefree((void *)shard_index_xml, 0);
+		pefree((void *)server_xml, 0);
 		zval_dtor(tmp);
 		zval_dtor(z_shard_table);
 		zval_dtor(z_shard_mapping);
@@ -406,6 +417,7 @@ void fabric_set_raw_data_from_xmlstr(mysqlnd_fabric *fabric,
 	}
 	z_shard_index = *tmpp;
 	Z_ADDREF_P(z_shard_index);
+	pefree((void *)shard_index_xml, 0);
 	zval_dtor(tmp);
 
 	INIT_ZVAL(arg);
@@ -413,6 +425,7 @@ void fabric_set_raw_data_from_xmlstr(mysqlnd_fabric *fabric,
 	zend_call_method_with_1_params(NULL, NULL, &func_cache, "xmlrpc_decode", &tmp, &arg);
 	val_success = fabric_get_values_from_hash(tmp, &tmpp, err, err_size);
 	if(!val_success) {
+		pefree((void *)server_xml, 0);
 		zval_dtor(tmp);
 		zval_dtor(z_shard_table);
 		zval_dtor(z_shard_mapping);
@@ -421,6 +434,7 @@ void fabric_set_raw_data_from_xmlstr(mysqlnd_fabric *fabric,
 	}
 	z_server = *tmpp;
 	Z_ADDREF_P(z_server);
+	pefree((void *)server_xml, 0);
 	zval_dtor(tmp);
 
 	/* 2. Check all files for their number of elements */
