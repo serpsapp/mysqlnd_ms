@@ -111,6 +111,8 @@ php_stream *mysqlnd_fabric_handle_digest_auth(php_stream *stream, char *username
 	zval *context_header, **chptr;
 	int response_header_len;
 
+	php_stream *authed_stream = NULL;
+
 	if(!stream) { return NULL; }
 
 	// Extract path from URI
@@ -255,11 +257,14 @@ php_stream *mysqlnd_fabric_handle_digest_auth(php_stream *stream, char *username
 
 				ZVAL_STRING(context_header, response_header, 1);
 				php_stream_context_set_option(stream->context, "http", "header", context_header);
+				authed_stream = php_stream_open_wrapper_ex(stream->orig_path, "rb", REPORT_ERRORS, NULL, stream->context);
+				// Close the old stream, memory!
+				php_stream_close(stream);
 
 				free(uri);
 				free(header_copy);
 				free(response_header);
-				return php_stream_open_wrapper_ex(stream->orig_path, "rb", REPORT_ERRORS, NULL, stream->context);
+				return authed_stream;
 			} else {
 				//TODO: Raise an error/notice
 				free(uri);
