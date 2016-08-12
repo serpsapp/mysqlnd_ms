@@ -405,7 +405,6 @@ void fabric_set_raw_data_from_xmlstr(mysqlnd_fabric *fabric,
 	INIT_ZVAL(arg);
 	ZVAL_STRINGL(&arg, shard_index_xml, shard_index_len, 0);
 	zend_call_method_with_1_params(NULL, NULL, &func_cache, "xmlrpc_decode", &tmp, &arg);
-	zend_call_method_with_1_params(NULL, NULL, &func_cache, "xmlrpc_decode", &tmp, &arg);
 	val_success = fabric_get_values_from_hash(tmp, &tmpp, err, err_size);
 	if(!val_success) {
 		pefree((void *)shard_index_xml, 0);
