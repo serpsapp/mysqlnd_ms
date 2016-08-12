@@ -142,7 +142,6 @@ php_stream *mysqlnd_fabric_handle_digest_auth(php_stream *stream, char *username
 		response_code = atoi(Z_STRVAL_PP(curhead) + 9);
 		if(response_code == 200) {
 			free(uri);
-			zval_dtor(*curhead);
 			return stream;
 		} else if(response_code == 401) {
 			do {
@@ -266,17 +265,14 @@ php_stream *mysqlnd_fabric_handle_digest_auth(php_stream *stream, char *username
 				free(uri);
 				free(header_copy);
 				free(response_header);
-				zval_dtor(*curhead);
 				zval_dtor(ha1);
 				zval_dtor(ha2);
 				zval_dtor(&hash_in);
-				zval_dtor(context_header);
 				return authed_stream;
 			} else {
 				//TODO: Raise an error/notice
 				free(uri);
 				free(header_copy);
-				zval_dtor(*curhead);
 				return NULL;
 			}
 		}
