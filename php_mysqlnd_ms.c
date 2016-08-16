@@ -824,6 +824,7 @@ static void mysqlnd_ms_fabric_select_servers(zval *return_value, zval *conn_zv, 
 				} else {
 					/* unlikely: unexplored territory */
 					mnd_sprintf_free(unique_name_from_config);
+					conn->m->dtor(conn TSRMLS_CC);
 					php_error_docref(NULL TSRMLS_CC, E_ERROR, MYSQLND_MS_ERROR_PREFIX " Failed to reactivate a server from the pool");
 					RETVAL_FALSE;
 					DBG_VOID_RETURN;
