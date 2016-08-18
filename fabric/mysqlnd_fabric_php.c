@@ -76,7 +76,6 @@ char *mysqlnd_fabric_http(mysqlnd_fabric *fabric, char *url, char *request_body,
 
 	*response_len = php_stream_copy_to_mem(stream, &retval, PHP_STREAM_COPY_ALL, 0);
 	php_stream_close(stream);
-	php_stream_context_free(ctxt);
   
 	return retval;
 }
