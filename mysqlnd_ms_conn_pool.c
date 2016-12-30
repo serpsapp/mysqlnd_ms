@@ -471,6 +471,7 @@ pool_connection_exists(MYSQLND_MS_POOL * pool, smart_str * hash_key,
 		DBG_RETURN(FAIL);	
 	}
 
+	DBG_INF(hash_key->c);
 	if (SUCCESS == zend_hash_find(&(pool->data.master_list), hash_key->c, hash_key->len, (void**)&pool_element)) {
 		*is_master = TRUE;
 		*is_active = (*pool_element)->active;

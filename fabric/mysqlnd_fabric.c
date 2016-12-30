@@ -124,6 +124,7 @@ int mysqlnd_fabric_host_list_apply(const mysqlnd_fabric *fabric, mysqlnd_fabric_
 
 mysqlnd_fabric_server *mysqlnd_fabric_get_group_servers(mysqlnd_fabric *fabric, const char *group)
 {
+	DBG_ENTER("mysqlnd_fabric_get_group_servers");
 	if (!fabric->host_count) {
 		return NULL;
 	}
@@ -132,6 +133,7 @@ mysqlnd_fabric_server *mysqlnd_fabric_get_group_servers(mysqlnd_fabric *fabric, 
 
 mysqlnd_fabric_server *mysqlnd_fabric_get_shard_servers(mysqlnd_fabric *fabric, const char *table, const char *key, enum mysqlnd_fabric_hint hint)
 {
+	DBG_ENTER("mysqlnd_fabric_get_shard_servers");
 	if (!fabric->host_count) {
 		return NULL;
 	}

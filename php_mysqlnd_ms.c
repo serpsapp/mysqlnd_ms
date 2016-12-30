@@ -725,6 +725,22 @@ static PHP_FUNCTION(mysqlnd_ms_conn_type)
 }
 /* }}} */
 
+int sortServer(const void* lhs, const void* rhs)
+{
+	if(((mysqlnd_fabric_server*)lhs)->hostname && *((mysqlnd_fabric_server*)lhs)->hostname && ((mysqlnd_fabric_server*)rhs)->hostname && *((mysqlnd_fabric_server*)rhs)->hostname) {
+		int sortval;
+		if((sortval = strcmp(((mysqlnd_fabric_server*)lhs)->hostname, ((mysqlnd_fabric_server*)rhs)->hostname)) == 0) {
+			if(((mysqlnd_fabric_server*)lhs)->port == ((mysqlnd_fabric_server*)rhs)->port) {
+				return 0;
+			} else {
+				return ((mysqlnd_fabric_server*)lhs)->port - ((mysqlnd_fabric_server*)rhs)->port;
+			}
+		} else {
+			return (sortval == -1);
+		}
+	}
+}
+
 static void mysqlnd_ms_fabric_select_servers(zval *return_value, zval *conn_zv, char *table, char *key, enum mysqlnd_fabric_hint hint TSRMLS_DC) /* {{{ */
 {
 	MYSQLND *proxy_conn;
@@ -790,6 +806,16 @@ static void mysqlnd_ms_fabric_select_servers(zval *return_value, zval *conn_zv, 
 		DBG_VOID_RETURN;
 	}
 
+	// Count servers
+	int num_servers;
+	mysqlnd_fabric_server *countservers = servers;
+	while(countservers->hostname && *countservers->hostname) {
+		num_servers++;
+		countservers++;
+	}
+	// Sort servers for consistent ordering
+	qsort(servers, num_servers, sizeof(mysqlnd_fabric_server), sortServer);
+
 	for (; servers->hostname && *servers->hostname; servers++, server_counter++) {
 #if PHP_VERSION_ID >= 50600
 		MYSQLND *conn = mysqlnd_init(proxy_conn->data->m->get_client_api_capabilities(proxy_conn->data TSRMLS_CC), proxy_conn->data->persistent);
@@ -811,17 +837,26 @@ static void mysqlnd_ms_fabric_select_servers(zval *return_value, zval *conn_zv, 
 											(*conn_data)->cred.mysql_flags /* flags */,
 											proxy_conn->data->persistent);
 
+		DBG_INF_FMT("Consts: TRUE %d FALSE %d READ_WRITE %d READ_ONLY %d",TRUE, FALSE, READ_WRITE, READ_ONLY);
+
+		DBG_INF_FMT("Checking if connection exists for %s",hash_key.c);
 		exists = (*conn_data)->pool->connection_exists((*conn_data)->pool, &hash_key, &data, &is_master, &is_active, &is_removed TSRMLS_CC);
+		DBG_INF_FMT("Initial: %d",exists);
 		exists = (exists && !is_active && !is_removed) ? TRUE : FALSE;
+		DBG_INF_FMT("Active/removed check: %d",exists);
 		if (exists) {
+			DBG_INF_FMT("Check roles (master: %d, mode: %d)...", is_master, servers->mode);
 			/* Such a server has been added to the pool before */
 			if (is_master && (servers->mode == READ_WRITE) ||
 				!is_master && (servers->mode == READ_ONLY)) {
 				/* ... and, the role has not changed */
+				DBG_INF("Reactivating...");
 				if (PASS == ((*conn_data)->pool->connection_reactivate((*conn_data)->pool, &hash_key, is_master TSRMLS_CC))) {
 					/* welcome back server */
+					DBG_INF("Reactivated");
 					exists = TRUE;
 				} else {
+					DBG_INF("Uhh...");
 					/* unlikely: unexplored territory */
 					mnd_sprintf_free(unique_name_from_config);
 					conn->m->dtor(conn TSRMLS_CC);
@@ -830,8 +865,10 @@ static void mysqlnd_ms_fabric_select_servers(zval *return_value, zval *conn_zv, 
 					DBG_VOID_RETURN;
 				}
 			} else {
+				DBG_INF("Unexplored!");
 				/* this is unexplored territory: we can't simply reuse, its in the wrong list */
 				if (PASS == ((*conn_data)->pool->connection_remove((*conn_data)->pool, &hash_key, is_master TSRMLS_CC))) {
+					DBG_INF("Dereactivated? :(");
 					/* TODO see conn_pool.h - it may or may not actually removed or just marked for removal */
 					exists = FALSE;
 				}
