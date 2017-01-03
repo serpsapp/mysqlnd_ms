@@ -806,16 +806,6 @@ static void mysqlnd_ms_fabric_select_servers(zval *return_value, zval *conn_zv, 
 		DBG_VOID_RETURN;
 	}
 
-	// Count servers
-	int num_servers;
-	mysqlnd_fabric_server *countservers = servers;
-	while(countservers->hostname && *countservers->hostname) {
-		num_servers++;
-		countservers++;
-	}
-	// Sort servers for consistent ordering
-	qsort(servers, num_servers, sizeof(mysqlnd_fabric_server), sortServer);
-
 	for (; servers->hostname && *servers->hostname; servers++, server_counter++) {
 #if PHP_VERSION_ID >= 50600
 		MYSQLND *conn = mysqlnd_init(proxy_conn->data->m->get_client_api_capabilities(proxy_conn->data TSRMLS_CC), proxy_conn->data->persistent);
@@ -839,7 +829,7 @@ static void mysqlnd_ms_fabric_select_servers(zval *return_value, zval *conn_zv, 
 
 		DBG_INF_FMT("Consts: TRUE %d FALSE %d READ_WRITE %d READ_ONLY %d",TRUE, FALSE, READ_WRITE, READ_ONLY);
 
-		DBG_INF_FMT("Checking if connection exists for %s",hash_key.c);
+		DBG_INF_FMT("Checking if connection exists for %s (%s)",unique_name_from_config,hash_key.c);
 		exists = (*conn_data)->pool->connection_exists((*conn_data)->pool, &hash_key, &data, &is_master, &is_active, &is_removed TSRMLS_CC);
 		DBG_INF_FMT("Initial: %d",exists);
 		exists = (exists && !is_active && !is_removed) ? TRUE : FALSE;

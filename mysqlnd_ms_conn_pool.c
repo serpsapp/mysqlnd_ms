@@ -278,6 +278,9 @@ pool_get_conn_hash_key(smart_str * hash_key,
 	 * pointer address first. It has shortcomings too as it requires a unique name.
 	 * We need to get started...
 	 */
+	// Clear the hash key before working with it
+	// In case of smart_str reuse (as in mysqlnd_ms_fabric_select_servers)
+	smart_str_free(hash_key);
 	if (unique_name_from_config) {
 		smart_str_appendl(hash_key, unique_name_from_config, strlen(unique_name_from_config));
 	}
