@@ -784,7 +784,7 @@ static void mysqlnd_ms_fabric_select_servers(zval *return_value, zval *conn_zv, 
 		RETVAL_FALSE;
 		DBG_VOID_RETURN;
 	}
-	if (!servers) {
+	if (!(servers && servers->hostname && *servers->hostname)) {
 		php_error_docref(NULL TSRMLS_CC, E_WARNING, MYSQLND_MS_ERROR_PREFIX " Didn't receive usable servers from MySQL Fabric");
 		RETVAL_FALSE;
 		DBG_VOID_RETURN;
