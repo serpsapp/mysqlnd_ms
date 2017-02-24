@@ -747,6 +747,8 @@ mysqlnd_ms_pick_server_ex(MYSQLND_CONN_DATA * conn, char ** query, size_t * quer
 				output_slaves = tmp_sel_slaves;
 			}
 
+			DBG_INF_FMT("Choosing server using strategy %d", filter->pick_type);
+
 			switch (filter->pick_type) {
 				case SERVER_PICK_USER:
 					connection = mysqlnd_ms_user_pick_server(filter, (*conn_data)->connect_host, (const char * const)*query, *query_len,
@@ -874,6 +876,8 @@ mysqlnd_ms_pick_server_ex(MYSQLND_CONN_DATA * conn, char ** query, size_t * quer
 			}
 		}
 		*switched_servers = (conn == connection) ? FALSE : TRUE;
+
+		DBG_INF_FMT("Chose server %s:%d", connection->host, connection->port);
 		stgy->last_used_conn = connection;
 end:
 		if (selected_masters) {
